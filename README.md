@@ -1,3 +1,6 @@
+![image](https://github.com/arulh/stroven-super-cup/edit/main/assets/ssc_icon.png)
+
+
 | player   |      elo |
 |----------|----------|
 | arul     | 1035.06  |
