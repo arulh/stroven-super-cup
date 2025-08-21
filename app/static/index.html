@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FIFA Pi Leaderboard</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: .5rem; text-align: left; }
+    th { background: #f4f4f4; }
+  </style>
+</head>
+<body>
+  <h1>Leaderboard</h1>
+  <table id="tbl"><thead><tr>
+    <th>#</th><th>Handle</th><th>Name</th><th>Elo</th><th>Played</th><th>Wins</th><th>Losses</th><th>Win %</th>
+  </tr></thead><tbody></tbody></table>
+
+  <script>
+    async function load() {
+      const r = await fetch('/api/leaderboard');
+      const data = await r.json();
+      const tbody = document.querySelector('#tbl tbody');
+      tbody.innerHTML = '';
+      data.players.forEach((p, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i+1}</td><td><a href="/api/player/${p.handle}" target="_blank">${p.handle}</a></td>`+
+                       `<td>${p.name||''}</td><td>${p.elo}</td><td>${p.played}</td><td>${p.wins}</td><td>${p.losses}</td><td>${p.win_pct}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    load();
+  </script>
+</body>
+</html>
