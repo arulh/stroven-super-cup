@@ -119,6 +119,27 @@ if __name__ == "__main__":
         (("niko", "joel"), (10, 6)),
         (("niko", "arul"), (4, 3)),
         (("arul", "niko"), (1, 2)),
+        (("arul", "niko"), (0, 3)),
+        (("arul", "niko"), (5, 4)),
+        (("arul", "niko"), (3, 4)),
+        (("arul", "niko"), (5, 4)),
+        (("arul", "niko"), (4, 5)),
+        (("arul", "niko"), (5, 4)),
+        (("arul", "niko"), (5, 0)),
+        (("arul", "niko"), (6, 8)),
+        (("arul", "niko"), (3, 6)),
+        (("arul", "niko"), (4, 10)),
+        (("arul", "niko"), (3, 9)),
+        (("joel", "niko"), (2, 4)),
+        (("arul", "niko"), (3, 2)),
+        (("arul", "niko"), (1, 5)),
+        (("joel", "niko"), (6, 1)),
+        (("joel", "niko"), (2, 5)),
+        (("joel", "arul"), (0, 2)),
+        (("joel", "arul"), (5, 3)),
+        (("niko", "joel"), (8, 5)),
+        (("niko", "arul"), (4, 1)),
+        (("niko", "arul"), (6, 4))
     ]
 
     history = []

@@ -1,0 +1,10 @@
+services:
+  app:
+    build: ./app
+    container_name: stroven-super-cup
+    env_file: .env
+    volumes:
+      - ./data:/data
+    ports:
+      - "8000:8000"   # local access; Cloudflare Tunnel will use this
+    restart: unless-stopped

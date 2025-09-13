@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add Match</title>
+  <style>
+    :root { --bg:#0b1220; --card:#121b2e; --muted:#93a3b8; --text:#e7eefb; --ok:#27ae60; --err:#e74c3c; --accent:#4c8bf5; }
+    html, body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:0; }
+    .wrap { max-width: 880px; margin: 32px auto; padding: 0 16px; }
+    .card { background: var(--card); border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,.35); padding: 24px; }
+    h1 { margin-top: 0; font-weight: 700; letter-spacing: .2px; }
+    fieldset { border: 1px solid rgba(255,255,255,.08); border-radius: 12px; margin: 16px 0; }
+    legend { color: var(--muted); padding: 0 8px; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    label { display:block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    input, select, textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); background: #0e1627; color: var(--text); }
+    textarea { min-height: 88px; resize: vertical; }
+    .col-6 { grid-column: span 6; } .col-4 { grid-column: span 4; } .col-3 { grid-column: span 3; } .col-12 { grid-column: span 12; }
+    .row { margin: 12px 0; }
+    .actions { display:flex; gap: 12px; align-items:center; }
+    button { background: var(--accent); color: white; border: 0; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+    button.secondary { background: transparent; border: 1px solid rgba(255,255,255,.18); }
+    .msg { margin-top: 12px; font-size: 14px; }
+    .ok { color: var(--ok); } .err { color: var(--err); }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .row-inline { display:flex; gap: 10px; align-items:center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Record a Match</h1>
+      <p class="hint">Submits to <code>/api/matches</code>. Works with JSON via <code>fetch()</code>. If your API uses an HMAC signature header, you can optionally provide it below.</p>
+      <form id="match-form">
+        <fieldset>
+          <legend>Participants</legend>
+          <div class="grid">
+            <div class="col-6">
+              <label for="home_handle">Home player handle</label>
+              <input id="home_handle" name="home_handle" placeholder="e.g., arul" required />
+            </div>
+            <div class="col-6">
+              <label for="away_handle">Away player handle</label>
+              <input id="away_handle" name="away_handle" placeholder="e.g., sam" required />
+            </div>
+            <div class="col-3">
+              <label for="home_score">Home score</label>
+              <input id="home_score" name="home_score" type="number" min="0" step="1" value="0" required />
+            </div>
+            <div class="col-3">
+              <label for="away_score">Away score</label>
+              <input id="away_score" name="away_score" type="number" min="0" step="1" value="0" required />
+            </div>
+            <div class="col-6">
+              <label for="is_shootout">Decided by penalties?</label>
+              <select id="is_shootout" name="is_shootout">
+                <option value="false">No</option>
+                <option value="true">Yes</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Context</legend>
+          <div class="grid">
+            <div class="col-6">
+              <label for="when">Date/time</label>
+              <input id="when" name="when" type="datetime-local" />
+              <div class="hint">If blank, server will use its current time.</div>
+            </div>
+            <div class="col-6">
+              <label for="location">Location</label>
+              <input id="location" name="location" placeholder="e.g., UBC Commons" />
+            </div>
+            <div class="col-12">
+              <label for="competition">Competition / Season</label>
+              <input id="competition" name="competition" placeholder="e.g., Stroven Super Cup 2025" />
+            </div>
+            <div class="col-12">
+              <label for="notes">Notes</label>
+              <textarea id="notes" name="notes" placeholder="Optional notes..."></textarea>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Optional API headers</legend>
+          <div class="grid">
+            <div class="col-4">
+              <label for="x_signature">X-Signature</label>
+              <input id="x_signature" name="x_signature" placeholder="paste signature" />
+            </div>
+            <div class="col-4">
+              <label for="x_timestamp">X-Timestamp</label>
+              <input id="x_timestamp" name="x_timestamp" placeholder="unix/iso timestamp" />
+            </div>
+            <div class="col-4">
+              <label for="x_client_id">X-Client-Id</label>
+              <input id="x_client_id" name="x_client_id" placeholder="client id" />
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <button type="submit">Submit Match</button>
+          <button class="secondary" type="reset">Reset</button>
+        </div>
+        <div id="msg" class="msg"></div>
+      </form>
+    </div>
+  </div>
+
+<script>
+  const form = document.getElementById('match-form');
+  const msg  = document.getElementById('msg');
+
+  function toISO(dtLocalValue) {
+    if (!dtLocalValue) return null;
+    // dt-local is "YYYY-MM-DDTHH:mm", interpret in local tz and convert to ISO
+    const d = new Date(dtLocalValue);
+    return d.toISOString();
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msg.textContent = '';
+    msg.className = 'msg';
+
+    const data = {
+      home_handle: form.home_handle.value.trim(),
+      away_handle: form.away_handle.value.trim(),
+      home_score: Number(form.home_score.value || 0),
+      away_score: Number(form.away_score.value || 0),
+      is_shootout: form.is_shootout.value === 'true',
+      when: toISO(form.when.value),
+      location: form.location.value.trim() || null,
+      competition: form.competition.value.trim() || null,
+      notes: form.notes.value.trim() || null,
+    };
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (form.x_signature.value.trim()) headers['X-Signature'] = form.x_signature.value.trim();
+    if (form.x_timestamp.value.trim()) headers['X-Timestamp'] = form.x_timestamp.value.trim();
+    if (form.x_client_id.value.trim()) headers['X-Client-Id'] = form.x_client_id.value.trim();
+
+    try {
+      const res = await fetch('/api/matches', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || body.ok === false) {
+        throw new Error(body.error || res.statusText);
+      }
+      msg.textContent = '✅ Match created. ID: ' + (body.match_id ?? 'unknown');
+      msg.classList.add('ok');
+      form.reset();
+    } catch (err) {
+      msg.textContent = '❌ ' + (err?.message || String(err));
+      msg.classList.add('err');
+    }
+  });
+</script>
+</body>
+</html>
