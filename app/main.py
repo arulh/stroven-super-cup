@@ -43,17 +43,16 @@ class MatchIn(BaseModel):
             raise ValueError("handle required")
         return v
 
+
 @app.get("/")
 def root():
     return FileResponse("static/index.html")
 
-@app.get("/healthz")
-def healthz():
-    return {"ok": True}
 
-@app.get("health")
+@app.get("/health")
 def health():
     return {"ok": True}
+
 
 @app.get("/api/leaderboard")
 def leaderboard():
@@ -73,6 +72,7 @@ def leaderboard():
         ]
         return {"players": data}
 
+
 @app.get("/api/players")
 def players():
     with SessionLocal() as db:
@@ -82,6 +82,7 @@ def players():
              "played": p.matches_played, "wins": p.wins, "losses": p.losses}
             for p in rows
         ]}
+
 
 @app.get("/api/player/{handle}")
 def player_detail(handle: str):
@@ -107,6 +108,16 @@ def player_detail(handle: str):
                 for m in recent
             ]
         }
+    
+
+@app.get("/add-match", response_class=FileResponse)
+def get_add_match_form():
+    # Assumes your working dir has ./static/add_match.html
+    path = os.path.join(os.getcwd(), "static", "add_match.html")
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Form not found")
+    return FileResponse(path)
+
 
 @app.post("/api/matches")
 async def create_match(request: Request):
@@ -123,6 +134,7 @@ async def create_match(request: Request):
                 max_skew=SIG_MAX_SKEW,
                 nonce_ttl=NONCE_TTL,
             )
+            # key = "685e18a172a24ab3"
             sig_valid = True
         except AuthError as e:
             sig_valid = False
