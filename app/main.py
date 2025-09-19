@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, validator
 from sqlalchemy import create_engine, select, func
 from sqlalchemy.orm import sessionmaker
@@ -21,6 +22,15 @@ LOG_FILE = os.getenv("LOG_FILE")
 
 log = configure_logging(LOG_FILE)
 app = FastAPI(title="FIFA Pi")
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # DB setup
 engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
