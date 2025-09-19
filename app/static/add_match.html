@@ -15,8 +15,7 @@
     .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
     label { display:block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
     input, select, textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); background: #0e1627; color: var(--text); }
-    textarea { min-height: 88px; resize: vertical; }
-    .col-6 { grid-column: span 6; } .col-4 { grid-column: span 4; } .col-3 { grid-column: span 3; } .col-12 { grid-column: span 12; }
+    .col-6 { grid-column: span 6; } .col-3 { grid-column: span 3; } .col-12 { grid-column: span 12; }
     .row { margin: 12px 0; }
     .actions { display:flex; gap: 12px; align-items:center; }
     button { background: var(--accent); color: white; border: 0; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-weight: 600; }
@@ -31,7 +30,7 @@
   <div class="wrap">
     <div class="card">
       <h1>Record a Match</h1>
-      <p class="hint">Submits to <code>/api/matches</code>. Works with JSON via <code>fetch()</code>. If your API uses an HMAC signature header, you can optionally provide it below.</p>
+      <p class="hint">Submits to <code>/api/matches</code>. Works with JSON via <code>fetch()</code>.</p>
       <form id="match-form">
         <fieldset>
           <legend>Participants</legend>
@@ -52,54 +51,6 @@
               <label for="away_score">Away score</label>
               <input id="away_score" name="away_score" type="number" min="0" step="1" value="0" required />
             </div>
-            <div class="col-6">
-              <label for="is_shootout">Decided by penalties?</label>
-              <select id="is_shootout" name="is_shootout">
-                <option value="false">No</option>
-                <option value="true">Yes</option>
-              </select>
-            </div>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Context</legend>
-          <div class="grid">
-            <div class="col-6">
-              <label for="when">Date/time</label>
-              <input id="when" name="when" type="datetime-local" />
-              <div class="hint">If blank, server will use its current time.</div>
-            </div>
-            <div class="col-6">
-              <label for="location">Location</label>
-              <input id="location" name="location" placeholder="e.g., UBC Commons" />
-            </div>
-            <div class="col-12">
-              <label for="competition">Competition / Season</label>
-              <input id="competition" name="competition" placeholder="e.g., Stroven Super Cup 2025" />
-            </div>
-            <div class="col-12">
-              <label for="notes">Notes</label>
-              <textarea id="notes" name="notes" placeholder="Optional notes..."></textarea>
-            </div>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Optional API headers</legend>
-          <div class="grid">
-            <div class="col-4">
-              <label for="x_signature">X-Signature</label>
-              <input id="x_signature" name="x_signature" placeholder="paste signature" />
-            </div>
-            <div class="col-4">
-              <label for="x_timestamp">X-Timestamp</label>
-              <input id="x_timestamp" name="x_timestamp" placeholder="unix/iso timestamp" />
-            </div>
-            <div class="col-4">
-              <label for="x_client_id">X-Client-Id</label>
-              <input id="x_client_id" name="x_client_id" placeholder="client id" />
-            </div>
           </div>
         </fieldset>
 
@@ -116,34 +67,19 @@
   const form = document.getElementById('match-form');
   const msg  = document.getElementById('msg');
 
-  function toISO(dtLocalValue) {
-    if (!dtLocalValue) return null;
-    // dt-local is "YYYY-MM-DDTHH:mm", interpret in local tz and convert to ISO
-    const d = new Date(dtLocalValue);
-    return d.toISOString();
-  }
-
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     msg.textContent = '';
     msg.className = 'msg';
 
     const data = {
-      home_handle: form.home_handle.value.trim(),
-      away_handle: form.away_handle.value.trim(),
-      home_score: Number(form.home_score.value || 0),
-      away_score: Number(form.away_score.value || 0),
-      is_shootout: form.is_shootout.value === 'true',
-      when: toISO(form.when.value),
-      location: form.location.value.trim() || null,
-      competition: form.competition.value.trim() || null,
-      notes: form.notes.value.trim() || null,
+      p1_handle: form.home_handle.value.trim(),
+      p2_handle: form.away_handle.value.trim(),
+      p1_score: Number(form.home_score.value || 0),
+      p2_score: Number(form.away_score.value || 0)
     };
 
     const headers = { 'Content-Type': 'application/json' };
-    if (form.x_signature.value.trim()) headers['X-Signature'] = form.x_signature.value.trim();
-    if (form.x_timestamp.value.trim()) headers['X-Timestamp'] = form.x_timestamp.value.trim();
-    if (form.x_client_id.value.trim()) headers['X-Client-Id'] = form.x_client_id.value.trim();
 
     try {
       const res = await fetch('/api/matches', {
