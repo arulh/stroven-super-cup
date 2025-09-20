@@ -5,43 +5,77 @@ import {
   Typography,
   Box,
   useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TrendingUp } from '@mui/icons-material';
+import { fetchPlayers } from '../services/api';
 
 interface EloHistoryPoint {
   match: number;
-  alice?: number;
-  bob?: number;
-  charlie?: number;
+  [key: string]: number;
 }
 
 const EloTrendChart: React.FC = () => {
   const [eloHistory, setEloHistory] = useState<EloHistoryPoint[]>([]);
+  const [players, setPlayers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
-    // Mock data - in real app, fetch from rating_history table
-    const mockEloHistory: EloHistoryPoint[] = [
-      { match: 0, alice: 1000, bob: 1000, charlie: 1000 },
-      { match: 1, alice: 1016, bob: 984, charlie: 1000 },
-      { match: 2, alice: 1026, bob: 984, charlie: 990 },
-      { match: 3, alice: 1026, bob: 968, charlie: 1006 },
-      { match: 4, alice: 1010, bob: 968, charlie: 1022 },
-      { match: 5, alice: 1026, bob: 943, charlie: 1031 },
-    ];
+    const loadEloData = async () => {
+      try {
+        const playersData = await fetchPlayers();
+        const playerNames = playersData.map(p => p.handle);
+        setPlayers(playerNames);
 
-    setTimeout(() => {
-      setEloHistory(mockEloHistory);
-      setLoading(false);
-    }, 1000);
+        // Mock historical data for now - in production, this would come from rating_history
+        // Starting everyone at 1500 ELO
+        const history: EloHistoryPoint[] = [
+          { match: 0, ...Object.fromEntries(playerNames.map(name => [name, 1500])) },
+        ];
+
+        // Simulate some matches with ELO changes
+        const mockChanges = [
+          { match: 1, niko: 1516, arul: 1484, joel: 1500, daniel: 1500 },
+          { match: 2, niko: 1532, arul: 1484, joel: 1484, daniel: 1500 },
+          { match: 3, niko: 1548, arul: 1468, joel: 1484, daniel: 1500 },
+          { match: 4, niko: 1548, arul: 1452, joel: 1500, daniel: 1500 },
+          { match: 5, niko: 1564, arul: 1452, joel: 1484, daniel: 1484 },
+        ];
+
+        // Use actual player ELOs for the current state
+        const currentElos = Object.fromEntries(
+          playersData.map(p => [p.handle, p.elo])
+        );
+
+        if (mockChanges.length > 0) {
+          history.push(...mockChanges.slice(0, Math.min(5, mockChanges.length)));
+        }
+
+        // Add current state
+        history.push({
+          match: history.length,
+          ...currentElos,
+        });
+
+        setEloHistory(history);
+      } catch (error) {
+        console.error('Error loading ELO data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEloData();
   }, []);
 
-  const playerColors = {
-    alice: '#00ff88',
-    bob: '#ef4444',
-    charlie: '#00ccff',
+  const playerColors: { [key: string]: string } = {
+    niko: '#10b981',
+    arul: '#ef4444',
+    joel: '#60a5fa',
+    daniel: '#f59e0b',
   };
 
   if (loading) {
@@ -54,6 +88,11 @@ const EloTrendChart: React.FC = () => {
     );
   }
 
+  // Don't show if no data
+  if (eloHistory.length < 2) {
+    return null;
+  }
+
   return (
     <Card>
       <CardContent>
@@ -64,34 +103,39 @@ const EloTrendChart: React.FC = () => {
           </Typography>
         </Box>
 
-        <Box height={300}>
+        <Box height={isMobile ? 200 : 250}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={eloHistory}
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              margin={{
+                top: 20,
+                right: isMobile ? 10 : 30,
+                left: isMobile ? 0 : 20,
+                bottom: isMobile ? 40 : 20
+              }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
               <XAxis
                 dataKey="match"
-                tick={{ fill: theme.palette.text.primary, fontSize: 12 }}
+                tick={{ fill: theme.palette.text.primary, fontSize: isMobile ? 10 : 12 }}
                 axisLine={{ stroke: theme.palette.divider }}
-                label={{
+                label={!isMobile ? {
                   value: 'Match Number',
                   position: 'insideBottom',
                   offset: -10,
                   style: { textAnchor: 'middle', fill: theme.palette.text.secondary }
-                }}
+                } : undefined}
               />
               <YAxis
                 domain={['dataMin - 20', 'dataMax + 20']}
-                tick={{ fill: theme.palette.text.primary, fontSize: 12 }}
+                tick={{ fill: theme.palette.text.primary, fontSize: isMobile ? 10 : 12 }}
                 axisLine={{ stroke: theme.palette.divider }}
-                label={{
+                label={!isMobile ? {
                   value: 'ELO Rating',
                   angle: -90,
                   position: 'insideLeft',
                   style: { textAnchor: 'middle', fill: theme.palette.text.secondary }
-                }}
+                } : undefined}
               />
               <Tooltip
                 contentStyle={{
@@ -99,6 +143,7 @@ const EloTrendChart: React.FC = () => {
                   border: `1px solid ${theme.palette.divider}`,
                   borderRadius: 8,
                   color: theme.palette.text.primary,
+                  fontSize: isMobile ? '0.75rem' : '0.875rem',
                 }}
                 formatter={(value: any, name: string) => [
                   Math.round(value),
@@ -109,26 +154,27 @@ const EloTrendChart: React.FC = () => {
               <Legend
                 wrapperStyle={{
                   color: theme.palette.text.primary,
-                  fontSize: '14px',
+                  fontSize: isMobile ? '12px' : '14px',
                 }}
+                iconSize={isMobile ? 12 : 18}
               />
 
-              {Object.entries(playerColors).map(([player, color]) => (
+              {players.map((player) => (
                 <Line
                   key={player}
                   type="monotone"
                   dataKey={player}
-                  stroke={color}
-                  strokeWidth={3}
+                  stroke={playerColors[player] || '#94a3b8'}
+                  strokeWidth={isMobile ? 2 : 3}
                   dot={{
-                    fill: color,
+                    fill: playerColors[player] || '#94a3b8',
                     strokeWidth: 2,
                     stroke: theme.palette.background.paper,
-                    r: 5,
+                    r: isMobile ? 3 : 5,
                   }}
                   activeDot={{
-                    r: 7,
-                    stroke: color,
+                    r: isMobile ? 5 : 7,
+                    stroke: playerColors[player] || '#94a3b8',
                     strokeWidth: 2,
                     fill: theme.palette.background.paper,
                   }}
@@ -143,34 +189,42 @@ const EloTrendChart: React.FC = () => {
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
             Current ELO Rankings
           </Typography>
-          <Box display="flex" justifyContent="space-around" flexWrap="wrap">
-            {Object.entries(playerColors).map(([player, color]) => {
-              const currentElo = eloHistory[eloHistory.length - 1]?.[player as keyof EloHistoryPoint] as number;
-              const previousElo = eloHistory[eloHistory.length - 2]?.[player as keyof EloHistoryPoint] as number;
+          <Box
+            display="flex"
+            justifyContent="space-around"
+            flexWrap="wrap"
+            gap={isMobile ? 1 : 2}
+          >
+            {players.map((player) => {
+              const currentElo = eloHistory[eloHistory.length - 1]?.[player] as number;
+              const previousElo = eloHistory[Math.max(0, eloHistory.length - 2)]?.[player] as number;
               const change = currentElo - previousElo;
 
               return (
-                <Box key={player} textAlign="center" sx={{ minWidth: 120, mb: 2 }}>
+                <Box key={player} textAlign="center" sx={{ minWidth: isMobile ? 80 : 120, mb: 2 }}>
                   <Typography variant="body2" color="textSecondary">
                     {player.charAt(0).toUpperCase() + player.slice(1)}
                   </Typography>
                   <Typography
-                    variant="h5"
-                    sx={{ fontWeight: 700, color }}
+                    variant={isMobile ? "h6" : "h5"}
+                    sx={{ fontWeight: 700, color: playerColors[player] || '#94a3b8' }}
                   >
                     {Math.round(currentElo)}
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: change > 0 ? theme.palette.success.main :
-                             change < 0 ? theme.palette.error.main :
-                             theme.palette.text.secondary,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {change > 0 ? '+' : ''}{Math.round(change)}
-                  </Typography>
+                  {change !== 0 && (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: change > 0 ? theme.palette.success.main :
+                               change < 0 ? theme.palette.error.main :
+                               theme.palette.text.secondary,
+                        fontWeight: 600,
+                        fontSize: isMobile ? '0.75rem' : '0.875rem',
+                      }}
+                    >
+                      {change > 0 ? '+' : ''}{Math.round(change)}
+                    </Typography>
+                  )}
                 </Box>
               );
             })}

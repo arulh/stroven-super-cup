@@ -6,50 +6,79 @@ import {
   Box,
   Avatar,
   useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Analytics } from '@mui/icons-material';
 import { FormData } from '../types';
+import { fetchPlayers, fetchPlayerDetail } from '../services/api';
 
 const FormChart: React.FC = () => {
   const [formData, setFormData] = useState<FormData[]>([]);
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
-    // Mock data - in real app, fetch from API and calculate from recent matches
-    const mockFormData: FormData[] = [
-      {
-        player: 'alice',
-        last5Matches: ['W', 'W', 'L', 'W', 'W'],
-        form: 80, // 4/5 wins
-      },
-      {
-        player: 'charlie',
-        last5Matches: ['W', 'D', 'W', 'L', 'D'],
-        form: 60, // 2 wins, 2 draws, 1 loss
-      },
-      {
-        player: 'bob',
-        last5Matches: ['L', 'L', 'W', 'L', 'L'],
-        form: 20, // 1/5 wins
-      },
-    ];
+    const loadFormData = async () => {
+      try {
+        const players = await fetchPlayers();
+        const formDataPromises = players
+          .filter(p => p.played >= 5) // Only show players with at least 5 matches
+          .map(async (player) => {
+            const detail = await fetchPlayerDetail(player.handle);
+            if (!detail || !detail.recent || detail.recent.length < 5) return null;
 
-    setTimeout(() => {
-      setFormData(mockFormData);
-      setLoading(false);
-    }, 1000);
+            // Take the most recent 5 matches
+            const last5 = detail.recent.slice(0, 5);
+            const last5Results = last5.map(match => {
+              const [p1Score, p2Score] = match.score.split('-').map(Number);
+              const isP1 = match.p1 === player.handle;
+              const playerScore = isP1 ? p1Score : p2Score;
+              const opponentScore = isP1 ? p2Score : p1Score;
+
+              if (playerScore > opponentScore) return 'W';
+              if (playerScore < opponentScore) return 'L';
+              return 'D';
+            }) as ('W' | 'L' | 'D')[];
+
+            // Calculate form percentage correctly
+            const wins = last5Results.filter(r => r === 'W').length;
+            const draws = last5Results.filter(r => r === 'D').length;
+            const losses = last5Results.filter(r => r === 'L').length;
+
+            // Form calculation: Wins = 20 points, Draws = 10 points, Loss = 0 points
+            // Maximum possible = 100 points (5 wins)
+            const form = (wins * 20 + draws * 10);
+
+
+            return {
+              player: player.handle,
+              last5Matches: last5Results,
+              form,
+            };
+          });
+
+        const results = (await Promise.all(formDataPromises)).filter(Boolean) as FormData[];
+        setFormData(results);
+      } catch (error) {
+        console.error('Error loading form data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFormData();
   }, []);
 
   const generateAvatarUrl = (handle: string) => {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${handle}&backgroundColor=003399`;
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${handle}&backgroundColor=1e40af`;
   };
 
   const getFormColor = (form: number) => {
-    if (form >= 80) return '#00ff88';
-    if (form >= 60) return '#4ade80';
-    if (form >= 40) return '#fbbf24';
+    if (form >= 80) return '#10b981';
+    if (form >= 60) return '#22c55e';
+    if (form >= 40) return '#f59e0b';
     if (form >= 20) return '#f87171';
     return '#ef4444';
   };
@@ -59,7 +88,7 @@ const FormChart: React.FC = () => {
     if (form >= 60) return 'GOOD';
     if (form >= 40) return 'AVERAGE';
     if (form >= 20) return 'POOR';
-    return 'TERRIBLE';
+    return 'STRUGGLING';
   };
 
   const chartData = formData.map(player => ({
@@ -78,6 +107,11 @@ const FormChart: React.FC = () => {
     );
   }
 
+  // Don't show the component if there's not enough data
+  if (formData.length === 0) {
+    return null;
+  }
+
   return (
     <Card>
       <CardContent>
@@ -88,20 +122,31 @@ const FormChart: React.FC = () => {
           </Typography>
         </Box>
 
+        {/* Explanation */}
+        <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+          Based on last 5 matches: Win = 20pts, Draw = 10pts, Loss = 0pts
+        </Typography>
+
         {/* Chart */}
-        <Box mb={3} height={200}>
+        <Box mb={3} height={180}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
               <XAxis
                 dataKey="name"
-                tick={{ fill: theme.palette.text.primary, fontSize: 12 }}
+                tick={{ fill: theme.palette.text.primary, fontSize: isMobile ? 10 : 12 }}
                 axisLine={{ stroke: theme.palette.divider }}
               />
               <YAxis
                 domain={[0, 100]}
-                tick={{ fill: theme.palette.text.primary, fontSize: 12 }}
+                tick={{ fill: theme.palette.text.primary, fontSize: isMobile ? 10 : 12 }}
                 axisLine={{ stroke: theme.palette.divider }}
+                label={{
+                  value: 'Form Points',
+                  angle: -90,
+                  position: 'insideLeft',
+                  style: { fill: theme.palette.text.secondary, fontSize: 12 }
+                }}
               />
               <Tooltip
                 contentStyle={{
@@ -110,7 +155,7 @@ const FormChart: React.FC = () => {
                   borderRadius: 8,
                   color: theme.palette.text.primary,
                 }}
-                formatter={(value: any) => [`${value}%`, 'Form Rating']}
+                formatter={(value: any) => [`${value} pts`, 'Form']}
               />
               <Bar dataKey="form" radius={[4, 4, 0, 0]}>
                 {chartData.map((entry, index) => (
@@ -125,91 +170,114 @@ const FormChart: React.FC = () => {
         <Box>
           {formData
             .sort((a, b) => b.form - a.form)
-            .map((player) => (
-              <Box
-                key={player.player}
-                sx={{
-                  mb: 2,
-                  p: 2,
-                  border: `1px solid ${getFormColor(player.form)}`,
-                  borderRadius: 2,
-                  backgroundColor: `${getFormColor(player.form)}15`,
-                }}
-              >
-                <Box display="flex" alignItems="center" justifyContent="space-between">
-                  <Box display="flex" alignItems="center">
-                    <Avatar
-                      src={generateAvatarUrl(player.player)}
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        mr: 2,
-                        border: `2px solid ${getFormColor(player.form)}`,
-                      }}
-                    />
-                    <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        {player.player}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: getFormColor(player.form),
-                          fontWeight: 600,
-                        }}
-                      >
-                        {getFormLabel(player.form)}
-                      </Typography>
-                    </Box>
-                  </Box>
+            .map((player) => {
+              const wins = player.last5Matches.filter(r => r === 'W').length;
+              const draws = player.last5Matches.filter(r => r === 'D').length;
+              const losses = player.last5Matches.filter(r => r === 'L').length;
 
-                  {/* Last 5 Matches */}
-                  <Box display="flex" alignItems="center">
-                    <Typography variant="body2" sx={{ mr: 2, opacity: 0.7 }}>
-                      Last 5:
-                    </Typography>
-                    <Box display="flex">
-                      {player.last5Matches.map((result, index) => (
-                        <Box
-                          key={index}
+              return (
+                <Box
+                  key={player.player}
+                  sx={{
+                    mb: 2,
+                    p: isMobile ? 1.5 : 2,
+                    border: `1px solid ${getFormColor(player.form)}40`,
+                    borderRadius: 2,
+                    backgroundColor: `${getFormColor(player.form)}08`,
+                  }}
+                >
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    flexDirection={isMobile ? 'column' : 'row'}
+                    gap={isMobile ? 1 : 0}
+                  >
+                    <Box display="flex" alignItems="center">
+                      <Avatar
+                        src={generateAvatarUrl(player.player)}
+                        sx={{
+                          width: isMobile ? 32 : 40,
+                          height: isMobile ? 32 : 40,
+                          mr: isMobile ? 1 : 2,
+                          border: `2px solid ${getFormColor(player.form)}40`,
+                        }}
+                      />
+                      <Box>
+                        <Typography variant={isMobile ? "body1" : "h6"} sx={{ fontWeight: 600 }}>
+                          {player.player}
+                        </Typography>
+                        <Typography
+                          variant="body2"
                           sx={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: '50%',
-                            backgroundColor:
-                              result === 'W' ? '#00ff88' :
-                              result === 'L' ? '#ef4444' :
-                              '#6b7280',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            mx: 0.25,
-                            fontSize: '0.8rem',
+                            color: getFormColor(player.form),
                             fontWeight: 600,
-                            color: 'white',
+                            fontSize: isMobile ? '0.75rem' : '0.875rem',
                           }}
                         >
-                          {result}
-                        </Box>
-                      ))}
+                          {getFormLabel(player.form)} • {wins}W {draws}D {losses}L
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Last 5 Matches */}
+                    <Box display="flex" alignItems="center" gap={isMobile ? 0.5 : 1}>
+                      {!isMobile && (
+                        <Typography variant="body2" sx={{ mr: 1, opacity: 0.7 }}>
+                          Last 5:
+                        </Typography>
+                      )}
+                      <Box display="flex" gap={0.25}>
+                        {player.last5Matches.map((result, index) => (
+                          <Box
+                            key={index}
+                            sx={{
+                              width: isMobile ? 24 : 28,
+                              height: isMobile ? 24 : 28,
+                              borderRadius: '4px',
+                              backgroundColor:
+                                result === 'W' ? '#10b981' :
+                                result === 'L' ? '#ef4444' :
+                                '#6b7280',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: isMobile ? '0.7rem' : '0.8rem',
+                              fontWeight: 600,
+                              color: 'white',
+                            }}
+                          >
+                            {result}
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+
+                    {/* Form Score */}
+                    <Box textAlign="center">
+                      <Typography
+                        variant={isMobile ? "h6" : "h5"}
+                        sx={{
+                          fontWeight: 700,
+                          color: getFormColor(player.form),
+                        }}
+                      >
+                        {player.form}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: theme.palette.text.secondary,
+                          fontSize: isMobile ? '0.65rem' : '0.75rem',
+                        }}
+                      >
+                        pts
+                      </Typography>
                     </Box>
                   </Box>
-
-                  {/* Form Percentage */}
-                  <Box textAlign="center">
-                    <Typography
-                      variant="h5"
-                      sx={{
-                        fontWeight: 700,
-                        color: getFormColor(player.form),
-                      }}
-                    >
-                      {player.form}%
-                    </Typography>
-                  </Box>
                 </Box>
-              </Box>
-            ))}
+              );
+            })}
         </Box>
       </CardContent>
     </Card>

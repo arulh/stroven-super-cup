@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { Whatshot, TrendingUp, TrendingDown } from '@mui/icons-material';
 import { StreakData } from '../types';
+import { fetchPlayers, fetchPlayerDetail } from '../services/api';
 
 const StreakChart: React.FC = () => {
   const [streakData, setStreakData] = useState<StreakData[]>([]);
@@ -18,66 +19,104 @@ const StreakChart: React.FC = () => {
   const theme = useTheme();
 
   useEffect(() => {
-    // Mock data - in real app, fetch from API
-    const mockStreakData: StreakData[] = [
-      {
-        player: 'alice',
-        currentStreak: 3,
-        streakType: 'win',
-        bestWinStreak: 5,
-        worstLossStreak: 2,
-      },
-      {
-        player: 'charlie',
-        currentStreak: 1,
-        streakType: 'win',
-        bestWinStreak: 3,
-        worstLossStreak: 1,
-      },
-      {
-        player: 'bob',
-        currentStreak: 2,
-        streakType: 'loss',
-        bestWinStreak: 2,
-        worstLossStreak: 3,
-      },
-    ];
+    const loadStreakData = async () => {
+      try {
+        const players = await fetchPlayers();
+        const streakPromises = players.map(async (player) => {
+          const detail = await fetchPlayerDetail(player.handle);
+          if (!detail || !detail.recent || detail.recent.length === 0) return null;
 
-    setTimeout(() => {
-      setStreakData(mockStreakData);
-      setLoading(false);
-    }, 1000);
+          // Calculate current streak
+          let currentStreak = 0;
+          let streakType: 'win' | 'loss' | 'draw' = 'draw';
+          let bestWinStreak = 0;
+          let worstLossStreak = 0;
+          let currentWinStreak = 0;
+          let currentLossStreak = 0;
+
+          // Process recent matches to determine streaks
+          for (const match of detail.recent) {
+            const [p1Score, p2Score] = match.score.split('-').map(Number);
+            const isP1 = match.p1 === player.handle;
+            const playerScore = isP1 ? p1Score : p2Score;
+            const opponentScore = isP1 ? p2Score : p1Score;
+
+            if (playerScore > opponentScore) {
+              // Win
+              currentWinStreak++;
+              currentLossStreak = 0;
+              if (currentWinStreak > bestWinStreak) {
+                bestWinStreak = currentWinStreak;
+              }
+            } else if (playerScore < opponentScore) {
+              // Loss
+              currentLossStreak++;
+              currentWinStreak = 0;
+              if (currentLossStreak > worstLossStreak) {
+                worstLossStreak = currentLossStreak;
+              }
+            } else {
+              // Draw
+              currentWinStreak = 0;
+              currentLossStreak = 0;
+            }
+          }
+
+          // Determine current streak
+          if (detail.recent.length > 0) {
+            const lastMatch = detail.recent[0];
+            const [p1Score, p2Score] = lastMatch.score.split('-').map(Number);
+            const isP1 = lastMatch.p1 === player.handle;
+            const playerScore = isP1 ? p1Score : p2Score;
+            const opponentScore = isP1 ? p2Score : p1Score;
+
+            if (playerScore > opponentScore) {
+              streakType = 'win';
+              currentStreak = currentWinStreak;
+            } else if (playerScore < opponentScore) {
+              streakType = 'loss';
+              currentStreak = currentLossStreak;
+            } else {
+              streakType = 'draw';
+              currentStreak = 1;
+            }
+          }
+
+          return {
+            player: player.handle,
+            currentStreak,
+            streakType,
+            bestWinStreak,
+            worstLossStreak,
+          };
+        });
+
+        const results = (await Promise.all(streakPromises)).filter(Boolean) as StreakData[];
+        setStreakData(results);
+      } catch (error) {
+        console.error('Error loading streak data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStreakData();
   }, []);
 
   const generateAvatarUrl = (handle: string) => {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${handle}&backgroundColor=003399`;
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${handle}&backgroundColor=1e40af`;
   };
 
-  const getStreakColor = (streakType: 'win' | 'loss' | 'draw', streak: number) => {
-    if (streakType === 'win') {
-      if (streak >= 5) return '#00ff88';
-      if (streak >= 3) return '#4ade80';
-      return '#22c55e';
-    }
-    if (streakType === 'loss') {
-      if (streak >= 3) return '#ef4444';
-      return '#f87171';
-    }
-    return '#6b7280';
+  const getStreakIcon = (type: 'win' | 'loss' | 'draw') => {
+    if (type === 'win') return <TrendingUp sx={{ color: theme.palette.success.main }} />;
+    if (type === 'loss') return <TrendingDown sx={{ color: theme.palette.error.main }} />;
+    return <Whatshot sx={{ color: theme.palette.warning.main }} />;
   };
 
-  const getStreakIcon = (streakType: 'win' | 'loss' | 'draw') => {
-    if (streakType === 'win') return <TrendingUp />;
-    if (streakType === 'loss') return <TrendingDown />;
-    return <Whatshot />;
-  };
-
-  const getStreakIntensity = (streak: number, type: 'win' | 'loss' | 'draw') => {
-    if (type === 'win' && streak >= 5) return 'ON FIRE! 🔥';
-    if (type === 'win' && streak >= 3) return 'HOT STREAK';
-    if (type === 'loss' && streak >= 3) return 'COLD SPELL';
-    if (streak >= 2) return 'BUILDING MOMENTUM';
-    return 'GETTING STARTED';
+  const getStreakColor = (type: 'win' | 'loss' | 'draw') => {
+    if (type === 'win') return theme.palette.success.main;
+    if (type === 'loss') return theme.palette.error.main;
+    return theme.palette.warning.main;
   };
 
   if (loading) {
@@ -90,180 +129,124 @@ const StreakChart: React.FC = () => {
     );
   }
 
+  // Don't show if no data
+  if (streakData.length === 0) {
+    return null;
+  }
+
   return (
     <Card>
       <CardContent>
         <Box display="flex" alignItems="center" mb={3}>
           <Whatshot sx={{ mr: 2, fontSize: '2rem', color: theme.palette.secondary.main }} />
           <Typography variant="h4" component="h3">
-            Current Form & Streaks
+            Current Streaks
           </Typography>
         </Box>
 
-        <Box>
-          {streakData
-            .sort((a, b) => {
-              // Sort by current streak (wins first, then by streak length)
-              if (a.streakType === 'win' && b.streakType !== 'win') return -1;
-              if (b.streakType === 'win' && a.streakType !== 'win') return 1;
-              return b.currentStreak - a.currentStreak;
-            })
-            .map((player, index) => (
-              <Box
-                key={player.player}
-                sx={{
-                  mb: 2,
-                  p: 3,
-                  border: `1px solid ${getStreakColor(player.streakType, player.currentStreak)}`,
-                  borderRadius: 2,
-                  backgroundColor: `${getStreakColor(player.streakType, player.currentStreak)}15`,
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Background streak effect */}
-                {player.currentStreak >= 3 && (
-                  <Box
+        {/* Streak Rankings */}
+        {streakData
+          .sort((a, b) => {
+            // Sort by win streaks first, then by lowest loss streaks
+            if (a.streakType === 'win' && b.streakType !== 'win') return -1;
+            if (a.streakType !== 'win' && b.streakType === 'win') return 1;
+            return b.currentStreak - a.currentStreak;
+          })
+          .map((player) => (
+            <Box
+              key={player.player}
+              sx={{
+                mb: 3,
+                p: 2,
+                border: `1px solid ${getStreakColor(player.streakType)}40`,
+                borderRadius: 2,
+                backgroundColor: `${getStreakColor(player.streakType)}08`,
+              }}
+            >
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                {/* Player Info */}
+                <Box display="flex" alignItems="center">
+                  <Avatar
+                    src={generateAvatarUrl(player.player)}
                     sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      background: `linear-gradient(45deg, ${getStreakColor(player.streakType, player.currentStreak)}05, transparent)`,
-                      pointerEvents: 'none',
+                      width: 48,
+                      height: 48,
+                      mr: 2,
+                      border: `2px solid ${getStreakColor(player.streakType)}`,
                     }}
                   />
-                )}
-
-                {/* Player Info */}
-                <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                  <Box display="flex" alignItems="center">
-                    <Avatar
-                      src={generateAvatarUrl(player.player)}
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        mr: 2,
-                        border: `2px solid ${getStreakColor(player.streakType, player.currentStreak)}`,
-                      }}
-                    />
-                    <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        {player.player}
-                      </Typography>
-                      <Box display="flex" alignItems="center">
-                        <Chip
-                          icon={getStreakIcon(player.streakType)}
-                          label={getStreakIntensity(player.currentStreak, player.streakType)}
-                          size="small"
-                          sx={{
-                            backgroundColor: getStreakColor(player.streakType, player.currentStreak),
-                            color: 'white',
-                            fontWeight: 600,
-                          }}
-                        />
-                      </Box>
-                    </Box>
-                  </Box>
-
-                  {/* Current Streak */}
-                  <Box textAlign="center">
-                    <Typography variant="body2" color="textSecondary">
-                      Current Streak
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {player.player}
                     </Typography>
-                    <Typography
-                      variant="h4"
-                      sx={{
-                        fontWeight: 700,
-                        color: getStreakColor(player.streakType, player.currentStreak),
-                      }}
-                    >
-                      {player.currentStreak}
+                    <Box display="flex" alignItems="center">
+                      {getStreakIcon(player.streakType)}
                       <Typography
-                        component="span"
-                        variant="h6"
+                        variant="body2"
                         sx={{
-                          ml: 0.5,
-                          textTransform: 'uppercase',
+                          ml: 1,
+                          color: getStreakColor(player.streakType),
                           fontWeight: 600,
                         }}
                       >
-                        {player.streakType === 'win' ? 'W' : player.streakType === 'loss' ? 'L' : 'D'}
+                        {player.currentStreak} {player.streakType === 'draw' ? 'Draw' : `Game ${player.streakType.charAt(0).toUpperCase() + player.streakType.slice(1)} Streak`}
                       </Typography>
-                    </Typography>
+                    </Box>
                   </Box>
                 </Box>
 
-                {/* Streak Records */}
-                <Box display="flex" justifyContent="space-between" alignItems="center">
-                  <Box flex={1}>
-                    <Typography variant="body2" color="textSecondary" gutterBottom>
-                      Best Win Streak
-                    </Typography>
-                    <Box display="flex" alignItems="center">
-                      <Box
-                        sx={{
-                          width: '100%',
-                          maxWidth: 150,
-                          mr: 2,
-                        }}
-                      >
-                        <LinearProgress
-                          variant="determinate"
-                          value={(player.bestWinStreak / 10) * 100}
-                          sx={{
-                            height: 8,
-                            borderRadius: 4,
-                            backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                            '& .MuiLinearProgress-bar': {
-                              backgroundColor: '#22c55e',
-                              borderRadius: 4,
-                            },
-                          }}
-                        />
-                      </Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#22c55e' }}>
-                        {player.bestWinStreak}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Box flex={1} sx={{ ml: 3 }}>
-                    <Typography variant="body2" color="textSecondary" gutterBottom>
-                      Worst Loss Streak
-                    </Typography>
-                    <Box display="flex" alignItems="center">
-                      <Box
-                        sx={{
-                          width: '100%',
-                          maxWidth: 150,
-                          mr: 2,
-                        }}
-                      >
-                        <LinearProgress
-                          variant="determinate"
-                          value={(player.worstLossStreak / 5) * 100}
-                          sx={{
-                            height: 8,
-                            borderRadius: 4,
-                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                            '& .MuiLinearProgress-bar': {
-                              backgroundColor: '#ef4444',
-                              borderRadius: 4,
-                            },
-                          }}
-                        />
-                      </Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#ef4444' }}>
-                        {player.worstLossStreak}
-                      </Typography>
-                    </Box>
-                  </Box>
+                {/* Streak Badges */}
+                <Box display="flex" gap={1}>
+                  {player.bestWinStreak > 0 && (
+                    <Chip
+                      icon={<TrendingUp />}
+                      label={`Best: ${player.bestWinStreak}W`}
+                      size="small"
+                      sx={{
+                        backgroundColor: `${theme.palette.success.main}20`,
+                        color: theme.palette.success.main,
+                      }}
+                    />
+                  )}
+                  {player.worstLossStreak > 0 && (
+                    <Chip
+                      icon={<TrendingDown />}
+                      label={`Worst: ${player.worstLossStreak}L`}
+                      size="small"
+                      sx={{
+                        backgroundColor: `${theme.palette.error.main}20`,
+                        color: theme.palette.error.main,
+                      }}
+                    />
+                  )}
                 </Box>
               </Box>
-            ))}
-        </Box>
+
+              {/* Streak Progress Bar */}
+              <Box mt={2}>
+                <Box display="flex" justifyContent="space-between" mb={1}>
+                  <Typography variant="caption" color="textSecondary">
+                    Streak Progress
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    {player.currentStreak} / {Math.max(player.bestWinStreak, 5)}
+                  </Typography>
+                </Box>
+                <LinearProgress
+                  variant="determinate"
+                  value={Math.min((player.currentStreak / Math.max(player.bestWinStreak, 5)) * 100, 100)}
+                  sx={{
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: `${getStreakColor(player.streakType)}20`,
+                    '& .MuiLinearProgress-bar': {
+                      backgroundColor: getStreakColor(player.streakType),
+                    },
+                  }}
+                />
+              </Box>
+            </Box>
+          ))}
       </CardContent>
     </Card>
   );

@@ -1,91 +1,95 @@
 import { createTheme } from '@mui/material/styles';
 
-// Champions League inspired theme with deep blues
+// Minimalist theme with subtle elegance
 export const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#003399', // UEFA Champions League deep blue
-      light: '#1a4da6',
-      dark: '#002266',
+      main: '#1e40af', // Deep blue
+      light: '#3b82f6',
+      dark: '#1e3a8a',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#00ccff', // Bright blue accent
-      light: '#33d4ff',
-      dark: '#0099cc',
+      main: '#60a5fa', // Sky blue
+      light: '#93bbfc',
+      dark: '#2563eb',
       contrastText: '#000000',
     },
     background: {
-      default: '#0a1128', // Very dark blue
-      paper: '#1a2847', // Dark blue-gray
+      default: '#0f172a', // Slate 900
+      paper: '#1e293b', // Slate 800
     },
     text: {
-      primary: '#ffffff',
-      secondary: '#b3c4e6',
+      primary: '#f1f5f9',
+      secondary: '#94a3b8',
     },
     success: {
-      main: '#00ff88',
+      main: '#10b981',
     },
     warning: {
-      main: '#ffaa00',
+      main: '#f59e0b',
     },
     error: {
-      main: '#ff4444',
+      main: '#ef4444',
     },
   },
   typography: {
-    fontFamily: '"Roboto", "Arial", sans-serif',
+    fontFamily: '"Inter", "SF Pro Display", "Helvetica Neue", sans-serif',
     h1: {
-      fontSize: '3.5rem',
-      fontWeight: 700,
-      background: 'linear-gradient(45deg, #003399, #00ccff)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
+      fontSize: '2.5rem',
+      fontWeight: 600,
+      letterSpacing: '-0.02em',
+      color: '#f1f5f9',
       textAlign: 'center',
     },
     h2: {
-      fontSize: '2.5rem',
-      fontWeight: 600,
-      color: '#ffffff',
+      fontSize: '2rem',
+      fontWeight: 500,
+      letterSpacing: '-0.01em',
+      color: '#f1f5f9',
     },
     h3: {
-      fontSize: '2rem',
-      fontWeight: 600,
-      color: '#00ccff',
-    },
-    h4: {
       fontSize: '1.5rem',
       fontWeight: 500,
-      color: '#ffffff',
+      color: '#cbd5e1',
+    },
+    h4: {
+      fontSize: '1.25rem',
+      fontWeight: 500,
+      color: '#f1f5f9',
     },
     body1: {
-      fontSize: '1rem',
-      color: '#b3c4e6',
+      fontSize: '0.95rem',
+      color: '#94a3b8',
+      lineHeight: 1.6,
     },
   },
   components: {
     MuiCard: {
       styleOverrides: {
         root: {
-          backgroundColor: '#1a2847',
-          border: '1px solid #334155',
-          borderRadius: '12px',
-          boxShadow: '0 8px 32px rgba(0, 51, 153, 0.2)',
+          backgroundColor: '#1e293b',
+          border: '1px solid rgba(148, 163, 184, 0.1)',
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+          backdropFilter: 'blur(10px)',
         },
       },
     },
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: '8px',
+          borderRadius: '6px',
           textTransform: 'none',
-          fontWeight: 600,
+          fontWeight: 500,
         },
         contained: {
-          background: 'linear-gradient(45deg, #003399, #0066cc)',
+          backgroundColor: '#3b82f6',
+          boxShadow: 'none',
           '&:hover': {
-            background: 'linear-gradient(45deg, #002266, #0044aa)',
+            backgroundColor: '#2563eb',
+            boxShadow: 'none',
           },
         },
       },
@@ -93,14 +97,17 @@ export const theme = createTheme({
     MuiTableCell: {
       styleOverrides: {
         head: {
-          backgroundColor: '#003399',
-          color: '#ffffff',
-          fontWeight: 700,
-          fontSize: '1.1rem',
+          backgroundColor: 'transparent',
+          color: '#94a3b8',
+          fontWeight: 500,
+          fontSize: '0.875rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
         },
         body: {
-          fontSize: '1rem',
-          borderBottom: '1px solid #334155',
+          fontSize: '0.95rem',
+          borderBottom: '1px solid rgba(148, 163, 184, 0.05)',
         },
       },
     },

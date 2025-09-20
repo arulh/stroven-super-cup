@@ -4,13 +4,13 @@ import {
   CardContent,
   Typography,
   Box,
-  LinearProgress,
   Avatar,
   Chip,
   useTheme,
 } from '@mui/material';
 import { SportsKabaddi } from '@mui/icons-material';
 import { Rivalry } from '../types';
+import { fetchAllMatches } from '../services/api';
 
 const RivalriesChart: React.FC = () => {
   const [rivalries, setRivalries] = useState<Rivalry[]>([]);
@@ -18,53 +18,91 @@ const RivalriesChart: React.FC = () => {
   const theme = useTheme();
 
   useEffect(() => {
-    // Mock data - in real app, fetch from API
-    const mockRivalries: Rivalry[] = [
-      {
-        player1: 'alice',
-        player2: 'bob',
-        player1Wins: 3,
-        player2Wins: 1,
-        draws: 1,
-        totalMatches: 5,
-        avgGoalDifference: 1.2,
-      },
-      {
-        player1: 'charlie',
-        player2: 'alice',
-        player1Wins: 2,
-        player2Wins: 2,
-        draws: 1,
-        totalMatches: 5,
-        avgGoalDifference: 0.2,
-      },
-      {
-        player1: 'bob',
-        player2: 'charlie',
-        player1Wins: 1,
-        player2Wins: 3,
-        draws: 0,
-        totalMatches: 4,
-        avgGoalDifference: -1.5,
-      },
-    ];
+    const loadRivalries = async () => {
+      try {
+        const matches = await fetchAllMatches();
 
-    setTimeout(() => {
-      setRivalries(mockRivalries);
-      setLoading(false);
-    }, 1000);
+        // Build rivalry data from matches
+        const rivalryMap = new Map<string, Rivalry>();
+
+        matches.forEach(match => {
+          const [p1Score, p2Score] = match.score.split('-').map(Number);
+          const key = [match.p1, match.p2].sort().join('-');
+
+          if (!rivalryMap.has(key)) {
+            rivalryMap.set(key, {
+              player1: match.p1 < match.p2 ? match.p1 : match.p2,
+              player2: match.p1 < match.p2 ? match.p2 : match.p1,
+              player1Wins: 0,
+              player2Wins: 0,
+              draws: 0,
+              totalMatches: 0,
+              avgGoalDifference: 0,
+            });
+          }
+
+          const rivalry = rivalryMap.get(key)!;
+          rivalry.totalMatches++;
+
+          if (p1Score > p2Score) {
+            if (match.p1 === rivalry.player1) {
+              rivalry.player1Wins++;
+              rivalry.avgGoalDifference += (p1Score - p2Score);
+            } else {
+              rivalry.player2Wins++;
+              rivalry.avgGoalDifference -= (p1Score - p2Score);
+            }
+          } else if (p2Score > p1Score) {
+            if (match.p2 === rivalry.player1) {
+              rivalry.player1Wins++;
+              rivalry.avgGoalDifference += (p2Score - p1Score);
+            } else {
+              rivalry.player2Wins++;
+              rivalry.avgGoalDifference -= (p2Score - p1Score);
+            }
+          } else {
+            rivalry.draws++;
+          }
+        });
+
+        // Calculate average goal difference
+        rivalryMap.forEach(rivalry => {
+          if (rivalry.totalMatches > 0) {
+            rivalry.avgGoalDifference = rivalry.avgGoalDifference / rivalry.totalMatches;
+          }
+        });
+
+        const rivalriesArray = Array.from(rivalryMap.values())
+          .filter(r => r.totalMatches >= 3) // Only show rivalries with 3+ matches
+          .sort((a, b) => b.totalMatches - a.totalMatches);
+
+        setRivalries(rivalriesArray);
+      } catch (error) {
+        console.error('Error loading rivalries:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRivalries();
   }, []);
 
   const generateAvatarUrl = (handle: string) => {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${handle}&backgroundColor=003399`;
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${handle}&backgroundColor=1e40af`;
   };
 
-  const getRivalryIntensity = (totalMatches: number, avgGoalDiff: number) => {
-    const intensity = totalMatches * (2 - Math.abs(avgGoalDiff));
-    if (intensity >= 8) return { label: 'LEGENDARY', color: '#FFD700' };
-    if (intensity >= 6) return { label: 'INTENSE', color: '#FF6B35' };
-    if (intensity >= 4) return { label: 'HEATED', color: '#F7931E' };
-    return { label: 'DEVELOPING', color: '#4ECDC4' };
+  const getIntensityColor = (totalMatches: number) => {
+    if (totalMatches >= 10) return theme.palette.error.main;
+    if (totalMatches >= 7) return theme.palette.warning.main;
+    if (totalMatches >= 5) return theme.palette.secondary.main;
+    return theme.palette.primary.main;
+  };
+
+  const getIntensityLabel = (totalMatches: number) => {
+    if (totalMatches >= 10) return 'LEGENDARY';
+    if (totalMatches >= 7) return 'INTENSE';
+    if (totalMatches >= 5) return 'HEATED';
+    return 'DEVELOPING';
   };
 
   if (loading) {
@@ -77,140 +115,183 @@ const RivalriesChart: React.FC = () => {
     );
   }
 
+  // Don't show if no rivalries
+  if (rivalries.length === 0) {
+    return null;
+  }
+
   return (
     <Card>
       <CardContent>
         <Box display="flex" alignItems="center" mb={3}>
           <SportsKabaddi sx={{ mr: 2, fontSize: '2rem', color: theme.palette.secondary.main }} />
           <Typography variant="h4" component="h3">
-            Epic Rivalries
+            Head-to-Head Rivalries
           </Typography>
         </Box>
 
-        <Box>
-          {rivalries.map((rivalry, index) => {
-            const player1WinPerc = (rivalry.player1Wins / rivalry.totalMatches) * 100;
-            const player2WinPerc = (rivalry.player2Wins / rivalry.totalMatches) * 100;
-            const drawPerc = (rivalry.draws / rivalry.totalMatches) * 100;
-            const intensity = getRivalryIntensity(rivalry.totalMatches, rivalry.avgGoalDifference);
+        {/* Top Rivalries */}
+        {rivalries.map((rivalry) => {
+          const player1Percentage = (rivalry.player1Wins / rivalry.totalMatches) * 100;
+          const player2Percentage = (rivalry.player2Wins / rivalry.totalMatches) * 100;
+          const drawPercentage = (rivalry.draws / rivalry.totalMatches) * 100;
 
-            return (
-              <Box
-                key={`${rivalry.player1}-${rivalry.player2}`}
-                sx={{
-                  mb: 3,
-                  p: 2,
-                  border: `1px solid ${theme.palette.divider}`,
-                  borderRadius: 2,
-                  backgroundColor: 'rgba(0, 51, 153, 0.05)',
-                }}
-              >
-                {/* Rivalry Header */}
-                <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                  <Box display="flex" alignItems="center">
-                    <Avatar
-                      src={generateAvatarUrl(rivalry.player1)}
-                      sx={{ width: 32, height: 32, mr: 1 }}
-                    />
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                      {rivalry.player1}
-                    </Typography>
-                    <Typography variant="h6" sx={{ mx: 2, color: theme.palette.secondary.main }}>
-                      VS
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                      {rivalry.player2}
-                    </Typography>
-                    <Avatar
-                      src={generateAvatarUrl(rivalry.player2)}
-                      sx={{ width: 32, height: 32, ml: 1 }}
-                    />
-                  </Box>
+          return (
+            <Box
+              key={`${rivalry.player1}-${rivalry.player2}`}
+              sx={{
+                mb: 3,
+                p: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: 2,
+                backgroundColor: 'rgba(30, 64, 175, 0.02)',
+              }}
+            >
+              {/* Players */}
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                <Box display="flex" alignItems="center" flex={1}>
+                  <Avatar
+                    src={generateAvatarUrl(rivalry.player1)}
+                    sx={{ width: 40, height: 40, mr: 1 }}
+                  />
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {rivalry.player1}
+                  </Typography>
+                </Box>
+
+                <Box mx={2}>
+                  <Typography variant="body2" sx={{ opacity: 0.7, textAlign: 'center' }}>
+                    VS
+                  </Typography>
                   <Chip
-                    label={intensity.label}
+                    label={getIntensityLabel(rivalry.totalMatches)}
                     size="small"
                     sx={{
-                      backgroundColor: intensity.color,
-                      color: 'white',
+                      backgroundColor: `${getIntensityColor(rivalry.totalMatches)}20`,
+                      color: getIntensityColor(rivalry.totalMatches),
                       fontWeight: 600,
+                      fontSize: '0.7rem',
                     }}
                   />
                 </Box>
 
-                {/* Win Distribution Bar */}
-                <Box mb={2}>
-                  <Box display="flex" alignItems="center" mb={1}>
-                    <Typography variant="body2" sx={{ minWidth: 100 }}>
-                      Head-to-Head:
-                    </Typography>
-                    <Box flex={1} sx={{ mx: 2 }}>
-                      <LinearProgress
-                        variant="determinate"
-                        value={player1WinPerc}
-                        sx={{
-                          height: 20,
-                          borderRadius: 10,
-                          backgroundColor: theme.palette.error.main,
-                          '& .MuiLinearProgress-bar': {
-                            backgroundColor: theme.palette.success.main,
-                            borderRadius: 10,
-                          },
-                        }}
-                      />
-                    </Box>
-                    <Typography variant="body2" sx={{ minWidth: 60, textAlign: 'right' }}>
-                      {rivalry.player1Wins}-{rivalry.player2Wins}
-                    </Typography>
-                  </Box>
+                <Box display="flex" alignItems="center" justifyContent="flex-end" flex={1}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {rivalry.player2}
+                  </Typography>
+                  <Avatar
+                    src={generateAvatarUrl(rivalry.player2)}
+                    sx={{ width: 40, height: 40, ml: 1 }}
+                  />
+                </Box>
+              </Box>
 
-                  {rivalry.draws > 0 && (
-                    <Box display="flex" alignItems="center" justifyContent="center" mt={1}>
-                      <Typography variant="body2" color="textSecondary">
-                        Draws: {rivalry.draws} ({drawPerc.toFixed(1)}%)
-                      </Typography>
+              {/* Win/Loss/Draw Bar */}
+              <Box mb={2}>
+                <Box display="flex" height={32} borderRadius={1} overflow="hidden">
+                  {player1Percentage > 0 && (
+                    <Box
+                      sx={{
+                        flex: player1Percentage,
+                        backgroundColor: theme.palette.success.main,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {rivalry.player1Wins}W
+                    </Box>
+                  )}
+                  {drawPercentage > 0 && (
+                    <Box
+                      sx={{
+                        flex: drawPercentage,
+                        backgroundColor: theme.palette.grey[600],
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {rivalry.draws}D
+                    </Box>
+                  )}
+                  {player2Percentage > 0 && (
+                    <Box
+                      sx={{
+                        flex: player2Percentage,
+                        backgroundColor: theme.palette.error.main,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {rivalry.player2Wins}W
                     </Box>
                   )}
                 </Box>
+              </Box>
 
-                {/* Stats */}
-                <Box display="flex" justifyContent="space-between">
-                  <Box textAlign="center">
-                    <Typography variant="body2" color="textSecondary">
-                      Total Matches
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                      {rivalry.totalMatches}
-                    </Typography>
-                  </Box>
-                  <Box textAlign="center">
-                    <Typography variant="body2" color="textSecondary">
-                      Avg Goal Diff
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 600,
-                        color: rivalry.avgGoalDifference > 0 ? theme.palette.success.main :
-                               rivalry.avgGoalDifference < 0 ? theme.palette.error.main :
-                               theme.palette.warning.main,
-                      }}
-                    >
-                      {rivalry.avgGoalDifference > 0 ? '+' : ''}{rivalry.avgGoalDifference.toFixed(1)}
-                    </Typography>
-                  </Box>
-                  <Box textAlign="center">
-                    <Typography variant="body2" color="textSecondary">
-                      Competitiveness
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: intensity.color }}>
-                      {Math.abs(player1WinPerc - player2WinPerc) < 20 ? 'EVEN' : 'DOMINANT'}
-                    </Typography>
-                  </Box>
+              {/* Stats */}
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Box>
+                  <Typography variant="body2" color="textSecondary">
+                    Win Rate
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                    {player1Percentage.toFixed(1)}%
+                  </Typography>
+                </Box>
+
+                <Box textAlign="center">
+                  <Typography variant="body2" color="textSecondary">
+                    Total Matches
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {rivalry.totalMatches}
+                  </Typography>
+                </Box>
+
+                <Box textAlign="center">
+                  <Typography variant="body2" color="textSecondary">
+                    Avg Goal Diff
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 600,
+                      color: rivalry.avgGoalDifference > 0
+                        ? theme.palette.success.main
+                        : rivalry.avgGoalDifference < 0
+                        ? theme.palette.error.main
+                        : theme.palette.text.primary,
+                    }}
+                  >
+                    {rivalry.avgGoalDifference > 0 && '+'}
+                    {rivalry.avgGoalDifference.toFixed(1)}
+                  </Typography>
+                </Box>
+
+                <Box textAlign="right">
+                  <Typography variant="body2" color="textSecondary">
+                    Win Rate
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
+                    {player2Percentage.toFixed(1)}%
+                  </Typography>
                 </Box>
               </Box>
-            );
-          })}
-        </Box>
+            </Box>
+          );
+        })}
       </CardContent>
     </Card>
   );
