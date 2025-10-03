@@ -9,7 +9,8 @@ import {
 } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TrendingUp } from '@mui/icons-material';
-import { fetchPlayers } from '../services/api';
+import { fetchPlayers, fetchAllMatches } from '../services/api';
+import { getPlayerColors } from '../utils/playerColors';
 
 interface EloHistoryPoint {
   match: number;
@@ -26,43 +27,39 @@ const EloTrendChart: React.FC = () => {
   useEffect(() => {
     const loadEloData = async () => {
       try {
-        const playersData = await fetchPlayers();
-        const playerNames = playersData.map(p => p.handle);
-        setPlayers(playerNames);
+        // Fetch actual rating history from the backend
+        const response = await fetch('http://localhost:8000/api/rating-history');
+        const data = await response.json();
+        const history = data.history;
 
-        // Mock historical data for now - in production, this would come from rating_history
-        // Starting everyone at 1500 ELO
-        const history: EloHistoryPoint[] = [
-          { match: 0, ...Object.fromEntries(playerNames.map(name => [name, 1500])) },
-        ];
-
-        // Simulate some matches with ELO changes
-        const mockChanges = [
-          { match: 1, niko: 1516, arul: 1484, joel: 1500, daniel: 1500 },
-          { match: 2, niko: 1532, arul: 1484, joel: 1484, daniel: 1500 },
-          { match: 3, niko: 1548, arul: 1468, joel: 1484, daniel: 1500 },
-          { match: 4, niko: 1548, arul: 1452, joel: 1500, daniel: 1500 },
-          { match: 5, niko: 1564, arul: 1452, joel: 1484, daniel: 1484 },
-        ];
-
-        // Use actual player ELOs for the current state
-        const currentElos = Object.fromEntries(
-          playersData.map(p => [p.handle, p.elo])
-        );
-
-        if (mockChanges.length > 0) {
-          history.push(...mockChanges.slice(0, Math.min(5, mockChanges.length)));
+        if (history && history.length > 0) {
+          // Get player names from the history data
+          const playerNames = Object.keys(history[0]).filter(key => key !== 'match');
+          setPlayers(playerNames);
+          setEloHistory(history);
+        } else {
+          // Fallback if no history
+          const playersData = await fetchPlayers();
+          const playerNames = playersData.map(p => p.handle);
+          setPlayers(playerNames);
+          setEloHistory([]);
         }
-
-        // Add current state
-        history.push({
-          match: history.length,
-          ...currentElos,
-        });
-
-        setEloHistory(history);
       } catch (error) {
         console.error('Error loading ELO data:', error);
+        // Fallback to simple data
+        try {
+          const playersData = await fetchPlayers();
+          const playerNames = playersData.map(p => p.handle);
+          setPlayers(playerNames);
+
+          const history: EloHistoryPoint[] = [
+            { match: 0, ...Object.fromEntries(playerNames.map(name => [name, 1000])) },
+            { match: 1, ...Object.fromEntries(playersData.map(p => [p.handle, p.elo])) }
+          ];
+          setEloHistory(history);
+        } catch (fallbackError) {
+          console.error('Fallback also failed:', fallbackError);
+        }
       } finally {
         setLoading(false);
       }
@@ -71,12 +68,8 @@ const EloTrendChart: React.FC = () => {
     loadEloData();
   }, []);
 
-  const playerColors: { [key: string]: string } = {
-    niko: '#10b981',
-    arul: '#ef4444',
-    joel: '#60a5fa',
-    daniel: '#f59e0b',
-  };
+  // Get consistent colors for all players
+  const playerColors = getPlayerColors(players);
 
   if (loading) {
     return (
@@ -129,6 +122,7 @@ const EloTrendChart: React.FC = () => {
               <YAxis
                 domain={['dataMin - 20', 'dataMax + 20']}
                 tick={{ fill: theme.palette.text.primary, fontSize: isMobile ? 10 : 12 }}
+                tickFormatter={(value) => Math.round(value).toString()}
                 axisLine={{ stroke: theme.palette.divider }}
                 label={!isMobile ? {
                   value: 'ELO Rating',
@@ -166,12 +160,7 @@ const EloTrendChart: React.FC = () => {
                   dataKey={player}
                   stroke={playerColors[player] || '#94a3b8'}
                   strokeWidth={isMobile ? 2 : 3}
-                  dot={{
-                    fill: playerColors[player] || '#94a3b8',
-                    strokeWidth: 2,
-                    stroke: theme.palette.background.paper,
-                    r: isMobile ? 3 : 5,
-                  }}
+                  dot={{ r: 2 }}  // Small dots to show data points
                   activeDot={{
                     r: isMobile ? 5 : 7,
                     stroke: playerColors[player] || '#94a3b8',
@@ -197,8 +186,15 @@ const EloTrendChart: React.FC = () => {
           >
             {players.map((player) => {
               const currentElo = eloHistory[eloHistory.length - 1]?.[player] as number;
-              const previousElo = eloHistory[Math.max(0, eloHistory.length - 2)]?.[player] as number;
-              const change = currentElo - previousElo;
+              // Calculate actual last game change from the rating history
+              let lastChange = 0;
+
+              if (eloHistory.length >= 2) {
+                const previousElo = eloHistory[eloHistory.length - 2]?.[player] as number;
+                if (previousElo !== undefined && currentElo !== undefined) {
+                  lastChange = currentElo - previousElo;
+                }
+              }
 
               return (
                 <Box key={player} textAlign="center" sx={{ minWidth: isMobile ? 80 : 120, mb: 2 }}>
@@ -211,18 +207,18 @@ const EloTrendChart: React.FC = () => {
                   >
                     {Math.round(currentElo)}
                   </Typography>
-                  {change !== 0 && (
+                  {lastChange !== 0 && (
                     <Typography
                       variant="body2"
                       sx={{
-                        color: change > 0 ? theme.palette.success.main :
-                               change < 0 ? theme.palette.error.main :
+                        color: lastChange > 0 ? theme.palette.success.main :
+                               lastChange < 0 ? theme.palette.error.main :
                                theme.palette.text.secondary,
                         fontWeight: 600,
                         fontSize: isMobile ? '0.75rem' : '0.875rem',
                       }}
                     >
-                      {change > 0 ? '+' : ''}{Math.round(change)}
+                      {lastChange > 0 ? '+' : ''}{Math.round(lastChange)}
                     </Typography>
                   )}
                 </Box>

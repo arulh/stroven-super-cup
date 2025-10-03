@@ -24,6 +24,28 @@ export const fetchPlayers = async (): Promise<Player[]> => {
   }
 };
 
+export const fetchPlayerStats = async (): Promise<any[]> => {
+  try {
+    const response = await fetch(`${API_URL}/api/player-stats`);
+    const data = await response.json();
+    return data.players;
+  } catch (error) {
+    console.error('Error fetching player stats:', error);
+    return [];
+  }
+};
+
+export const fetchRatingHistory = async (): Promise<any[]> => {
+  try {
+    const response = await fetch(`${API_URL}/api/rating-history`);
+    const data = await response.json();
+    return data.history;
+  } catch (error) {
+    console.error('Error fetching rating history:', error);
+    return [];
+  }
+};
+
 export const fetchPlayerDetail = async (handle: string): Promise<PlayerDetail | null> => {
   try {
     const response = await fetch(`${API_URL}/api/player/${handle}`);

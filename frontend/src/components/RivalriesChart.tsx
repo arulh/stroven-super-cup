@@ -11,6 +11,7 @@ import {
 import { SportsKabaddi } from '@mui/icons-material';
 import { Rivalry } from '../types';
 import { fetchAllMatches } from '../services/api';
+import { getPlayerColor } from '../utils/playerColors';
 
 const RivalriesChart: React.FC = () => {
   const [rivalries, setRivalries] = useState<Rivalry[]>([]);
@@ -193,7 +194,7 @@ const RivalriesChart: React.FC = () => {
                     <Box
                       sx={{
                         flex: player1Percentage,
-                        backgroundColor: theme.palette.success.main,
+                        backgroundColor: getPlayerColor(rivalry.player1),
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -225,7 +226,7 @@ const RivalriesChart: React.FC = () => {
                     <Box
                       sx={{
                         flex: player2Percentage,
-                        backgroundColor: theme.palette.error.main,
+                        backgroundColor: getPlayerColor(rivalry.player2),
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',

@@ -34,8 +34,9 @@ const StreakChart: React.FC = () => {
           let currentWinStreak = 0;
           let currentLossStreak = 0;
 
-          // Process recent matches to determine streaks
-          for (const match of detail.recent) {
+          // Process recent matches to determine streaks (reverse order - oldest to newest)
+          const reversedMatches = [...detail.recent].reverse();
+          for (const match of reversedMatches) {
             const [p1Score, p2Score] = match.score.split('-').map(Number);
             const isP1 = match.p1 === player.handle;
             const playerScore = isP1 ? p1Score : p2Score;

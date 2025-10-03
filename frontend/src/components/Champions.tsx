@@ -18,7 +18,7 @@ const Champions: React.FC = () => {
   const theme = useTheme();
 
   const champions: Champion[] = [
-    { name: 'Niko', wins: 4, color: '#ffd700' },
+    { name: 'Niko', wins: 5, color: '#ffd700' },
     { name: 'Joel', wins: 1, color: '#c0c0c0' },
     { name: 'Arul', wins: 1, color: '#cd7f32' },
   ];

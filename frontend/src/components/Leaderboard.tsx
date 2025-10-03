@@ -77,9 +77,8 @@ const Leaderboard: React.FC = () => {
               else recentForm.push('D');
             });
 
-            // For now, all-time high is current ELO + some random variance
-            // In production, this would come from rating_history table
-            const allTimeHigh = player.elo + Math.random() * 100;
+            // For now, set all-time high to current ELO
+            const allTimeHigh = player.elo;
 
             return {
               ...player,
