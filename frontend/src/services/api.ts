@@ -64,3 +64,17 @@ export const fetchAllMatches = async (): Promise<Match[]> => {
     return [];
   }
 };
+
+export const fetchRatingHistory = async (): Promise<{
+  history: any[];
+  all_time_highs: { [key: string]: number };
+  players: string[];
+} | null> => {
+  try {
+    const response = await fetch(`${API_URL}/api/rating-history`);
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching rating history:', error);
+    return null;
+  }
+};

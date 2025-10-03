@@ -9,10 +9,10 @@ import {
 } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TrendingUp } from '@mui/icons-material';
-import { fetchPlayers } from '../services/api';
+import { fetchRatingHistory } from '../services/api';
 
 interface EloHistoryPoint {
-  match: number;
+  game: number;
   [key: string]: number;
 }
 
@@ -26,43 +26,27 @@ const EloTrendChart: React.FC = () => {
   useEffect(() => {
     const loadEloData = async () => {
       try {
-        const playersData = await fetchPlayers();
-        const playerNames = playersData.map(p => p.handle);
-        setPlayers(playerNames);
+        const ratingData = await fetchRatingHistory();
 
-        // Mock historical data for now - in production, this would come from rating_history
-        // Starting everyone at 1500 ELO
-        const history: EloHistoryPoint[] = [
-          { match: 0, ...Object.fromEntries(playerNames.map(name => [name, 1500])) },
-        ];
-
-        // Simulate some matches with ELO changes
-        const mockChanges = [
-          { match: 1, niko: 1516, arul: 1484, joel: 1500, daniel: 1500 },
-          { match: 2, niko: 1532, arul: 1484, joel: 1484, daniel: 1500 },
-          { match: 3, niko: 1548, arul: 1468, joel: 1484, daniel: 1500 },
-          { match: 4, niko: 1548, arul: 1452, joel: 1500, daniel: 1500 },
-          { match: 5, niko: 1564, arul: 1452, joel: 1484, daniel: 1484 },
-        ];
-
-        // Use actual player ELOs for the current state
-        const currentElos = Object.fromEntries(
-          playersData.map(p => [p.handle, p.elo])
-        );
-
-        if (mockChanges.length > 0) {
-          history.push(...mockChanges.slice(0, Math.min(5, mockChanges.length)));
+        if (!ratingData) {
+          // Fallback to showing a simple message if API not available
+          console.log('Rating history API not available yet - backend needs rebuild');
+          setLoading(false);
+          return;
         }
 
-        // Add current state
-        history.push({
-          match: history.length,
-          ...currentElos,
-        });
+        // Transform the data for the chart
+        const history: EloHistoryPoint[] = ratingData.history.map(point => ({
+          game: point.match_number,
+          ...Object.fromEntries(
+            Object.entries(point).filter(([key]) => key !== 'match_number')
+          )
+        }));
 
+        setPlayers(ratingData.players);
         setEloHistory(history);
       } catch (error) {
-        console.error('Error loading ELO data:', error);
+        console.error('Error loading ELO data - backend may need rebuild:', error);
       } finally {
         setLoading(false);
       }
@@ -116,11 +100,11 @@ const EloTrendChart: React.FC = () => {
             >
               <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
               <XAxis
-                dataKey="match"
+                dataKey="game"
                 tick={{ fill: theme.palette.text.primary, fontSize: isMobile ? 10 : 12 }}
                 axisLine={{ stroke: theme.palette.divider }}
                 label={!isMobile ? {
-                  value: 'Match Number',
+                  value: 'Games Played',
                   position: 'insideBottom',
                   offset: -10,
                   style: { textAnchor: 'middle', fill: theme.palette.text.secondary }
@@ -149,7 +133,7 @@ const EloTrendChart: React.FC = () => {
                   Math.round(value),
                   name.charAt(0).toUpperCase() + name.slice(1)
                 ]}
-                labelFormatter={(label) => `After Match ${label}`}
+                labelFormatter={(label) => `After Game ${label}`}
               />
               <Legend
                 wrapperStyle={{

@@ -25,6 +25,7 @@ export interface Match {
 
 export interface PlayerDetail extends Player {
   recent: Match[];
+  all_time_high?: number;
 }
 
 export interface Rivalry {

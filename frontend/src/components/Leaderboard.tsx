@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { EmojiEvents, TrendingUp, TrendingDown } from '@mui/icons-material';
 import { Player } from '../types';
-import { fetchLeaderboard, fetchAllMatches } from '../services/api';
+import { fetchLeaderboard, fetchAllMatches, fetchRatingHistory, fetchPlayerDetail } from '../services/api';
 
 interface EnhancedPlayer extends Player {
   allTimeHigh?: number;
@@ -34,6 +34,7 @@ const Leaderboard: React.FC = () => {
       try {
         const data = await fetchLeaderboard();
         const allMatches = await fetchAllMatches();
+        const ratingHistory = await fetchRatingHistory();
 
         // Calculate actual stats from matches
         const enhancedPlayers = await Promise.all(
@@ -45,7 +46,7 @@ const Leaderboard: React.FC = () => {
 
             // Calculate real stats
             let wins = 0;
-            let losses = 0;
+            let lossesCount = 0;
             let draws = 0;
 
             playerMatches.forEach(match => {
@@ -55,11 +56,11 @@ const Leaderboard: React.FC = () => {
               const opponentScore = isP1 ? p2Score : p1Score;
 
               if (playerScore > opponentScore) wins++;
-              else if (playerScore < opponentScore) losses++;
+              else if (playerScore < opponentScore) lossesCount++;
               else draws++;
             });
 
-            const totalPlayed = wins + losses + draws;
+            const totalPlayed = wins + lossesCount + draws;
             const winPct = totalPlayed > 0 ? (wins / totalPlayed) * 100 : 0;
 
             // Get recent form (last 5 matches)
@@ -77,15 +78,29 @@ const Leaderboard: React.FC = () => {
               else recentForm.push('D');
             });
 
-            // For now, all-time high is current ELO + some random variance
-            // In production, this would come from rating_history table
-            const allTimeHigh = player.elo + Math.random() * 100;
+            // Get real all-time high from rating history or player detail
+            let allTimeHigh = player.elo; // Default to current if no history
+
+            // First try from rating history data
+            if (ratingHistory && ratingHistory.all_time_highs) {
+              allTimeHigh = ratingHistory.all_time_highs[player.handle] || player.elo;
+            } else {
+              // Fallback to player detail API
+              try {
+                const playerDetail = await fetchPlayerDetail(player.handle);
+                if (playerDetail && playerDetail.all_time_high) {
+                  allTimeHigh = playerDetail.all_time_high;
+                }
+              } catch (error) {
+                console.error(`Failed to get all-time high for ${player.handle}:`, error);
+              }
+            }
 
             return {
               ...player,
               played: totalPlayed,
               wins,
-              losses,
+              losses: lossesCount,
               win_pct: winPct,
               allTimeHigh,
               recentForm,

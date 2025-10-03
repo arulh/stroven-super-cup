@@ -31,6 +31,9 @@ const MatchFrequencyChart: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+  // Hide the entire component - day of week doesn't matter
+  return null;
+
   useEffect(() => {
     const loadMatchData = async () => {
       try {
