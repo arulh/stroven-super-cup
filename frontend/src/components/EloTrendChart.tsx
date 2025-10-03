@@ -96,7 +96,7 @@ const EloTrendChart: React.FC = () => {
           </Typography>
         </Box>
 
-        <Box height={isMobile ? 200 : 250}>
+        <Box height={isMobile ? 250 : 400}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={eloHistory}

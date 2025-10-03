@@ -58,17 +58,13 @@ function App() {
 
             {/* Charts Grid - Full Width */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {/* Two column row */}
-              <Box sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-                gap: 4
-              }}>
-                <FormChart />
-                <EloTrendChart />
-              </Box>
+              {/* ELO Trend Chart - Full width */}
+              <EloTrendChart />
 
-              {/* Full width */}
+              {/* Form Chart - Full width */}
+              <FormChart />
+
+              {/* Rivalries Chart - Full width */}
               <RivalriesChart />
 
               {/* Two column row */}

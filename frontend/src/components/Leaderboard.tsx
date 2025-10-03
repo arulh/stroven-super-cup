@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { EmojiEvents, TrendingUp, TrendingDown } from '@mui/icons-material';
 import { Player } from '../types';
-import { fetchLeaderboard, fetchAllMatches } from '../services/api';
+import { fetchLeaderboard, fetchAllMatches, fetchPlayerStats, fetchPlayerDetail } from '../services/api';
 
 interface EnhancedPlayer extends Player {
   allTimeHigh?: number;
@@ -34,16 +34,41 @@ const Leaderboard: React.FC = () => {
       try {
         const data = await fetchLeaderboard();
         const allMatches = await fetchAllMatches();
+        const playerStats = await fetchPlayerStats();
+
+        // Create a map of player stats for easy lookup
+        const statsMap = new Map(playerStats.map(p => [p.handle, p]));
 
         // Calculate actual stats from matches
         const enhancedPlayers = await Promise.all(
           data.map(async (player) => {
-            // Get player's matches
+            // Fetch player detail to get properly ordered recent matches
+            const playerDetail = await fetchPlayerDetail(player.handle);
+
+            // Get recent form from player detail (last 5 matches)
+            const recentForm: ('W' | 'L' | 'D')[] = [];
+
+            if (playerDetail && playerDetail.recent && playerDetail.recent.length > 0) {
+              // Take the first 5 matches (already sorted by most recent first)
+              const last5 = playerDetail.recent.slice(0, 5);
+
+              last5.forEach(match => {
+                const [p1Score, p2Score] = match.score.split('-').map(Number);
+                const isP1 = match.p1 === player.handle;
+                const playerScore = isP1 ? p1Score : p2Score;
+                const opponentScore = isP1 ? p2Score : p1Score;
+
+                if (playerScore > opponentScore) recentForm.push('W');
+                else if (playerScore < opponentScore) recentForm.push('L');
+                else recentForm.push('D');
+              });
+            }
+
+            // Calculate stats from all matches for totals
             const playerMatches = allMatches.filter(
               m => m.p1 === player.handle || m.p2 === player.handle
             );
 
-            // Calculate real stats
             let wins = 0;
             let losses = 0;
             let draws = 0;
@@ -62,23 +87,9 @@ const Leaderboard: React.FC = () => {
             const totalPlayed = wins + losses + draws;
             const winPct = totalPlayed > 0 ? (wins / totalPlayed) * 100 : 0;
 
-            // Get recent form (last 5 matches)
-            const recentForm: ('W' | 'L' | 'D')[] = [];
-            const recentMatches = playerMatches.slice(0, 5);
-
-            recentMatches.forEach(match => {
-              const [p1Score, p2Score] = match.score.split('-').map(Number);
-              const isP1 = match.p1 === player.handle;
-              const playerScore = isP1 ? p1Score : p2Score;
-              const opponentScore = isP1 ? p2Score : p1Score;
-
-              if (playerScore > opponentScore) recentForm.push('W');
-              else if (playerScore < opponentScore) recentForm.push('L');
-              else recentForm.push('D');
-            });
-
-            // For now, set all-time high to current ELO
-            const allTimeHigh = player.elo;
+            // Get the actual all-time high from player stats
+            const playerStat = statsMap.get(player.handle);
+            const allTimeHigh = playerStat?.all_time_high || player.elo;
 
             return {
               ...player,
@@ -319,7 +330,7 @@ const Leaderboard: React.FC = () => {
                     <TableCell align="center">
                       <Box display="flex" justifyContent="center" gap={0.25}>
                         {player.recentForm && player.recentForm.length > 0 ? (
-                          player.recentForm.map((result, i) => (
+                          [...player.recentForm].reverse().map((result, i) => (
                             <Box
                               key={i}
                               sx={{

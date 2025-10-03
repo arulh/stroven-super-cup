@@ -103,7 +103,7 @@ def player_detail(handle: str):
         recent = (
             db.query(Match)
               .filter((Match.p1_id == p.id) | (Match.p2_id == p.id))
-              .order_by(Match.played_at.desc())
+              .order_by(Match.played_at.desc(), Match.id.desc())
               .limit(20)
               .all()
         )
@@ -125,7 +125,7 @@ def get_rating_history():
     """Get rating history for all players to show ELO progression."""
     with SessionLocal() as db:
         # Get all matches in chronological order
-        matches = db.query(Match).order_by(Match.played_at.asc()).all()
+        matches = db.query(Match).order_by(Match.played_at.asc(), Match.id.asc()).all()
 
         # Get all players
         players = db.query(Player).all()
@@ -161,7 +161,7 @@ def get_rating_history():
 def get_all_matches():
     """Get all matches with player names."""
     with SessionLocal() as db:
-        matches = db.query(Match).order_by(Match.played_at.desc()).all()
+        matches = db.query(Match).order_by(Match.played_at.desc(), Match.id.desc()).all()
         result = []
         for m in matches:
             p1 = db.query(Player).get(m.p1_id)
