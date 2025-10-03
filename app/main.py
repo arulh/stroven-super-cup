@@ -14,7 +14,7 @@ from logger_cfg import configure_logging
 
 HOST = os.getenv("APP_HOST", "0.0.0.0")
 PORT = int(os.getenv("APP_PORT", "8000"))
-DB_PATH = os.getenv("DB_PATH", "/data/fifa.sqlite")
+DB_PATH = os.getenv("DB_PATH", "/data/rpi_09182025.sqlite")
 ELO_K = float(os.getenv("ELO_K", "32"))
 SIG_MAX_SKEW = int(os.getenv("SIG_MAX_SKEW_SECONDS", "300"))
 NONCE_TTL = int(os.getenv("NONCE_TTL_SECONDS", "900"))
@@ -107,9 +107,23 @@ def player_detail(handle: str):
               .limit(20)
               .all()
         )
+
+        # Get rating history for all-time high
+        rating_history = (
+            db.query(RatingHistory)
+              .filter(RatingHistory.player_id == p.id)
+              .order_by(RatingHistory.match_id.asc())
+              .all()
+        )
+
+        all_time_high = p.current_elo  # Start with current
+        if rating_history:
+            all_time_high = max([r.post_elo for r in rating_history] + [p.current_elo])
+
         return {
             "player": {"handle": p.handle, "name": p.name, "elo": round(p.current_elo,1),
-                        "played": p.matches_played, "wins": p.wins, "losses": p.losses},
+                        "played": p.matches_played, "wins": p.wins, "losses": p.losses,
+                        "all_time_high": round(all_time_high, 1)},
             "recent": [
                 {"played_at": m.played_at.isoformat(),
                  "p1": db.query(Player).get(m.p1_id).handle,
@@ -119,6 +133,65 @@ def player_detail(handle: str):
             ]
         }
     
+
+@app.get("/api/rating-history")
+def rating_history():
+    with SessionLocal() as db:
+        # Get all players
+        players = db.query(Player).all()
+
+        # Get all matches ordered by played_at
+        matches = db.query(Match).order_by(Match.played_at.asc()).all()
+
+        # Build progression data
+        history_data = []
+        current_ratings = {p.id: 1000.0 for p in players}  # Start at 1000
+        player_map = {p.id: p.handle for p in players}
+
+        # Add initial state
+        history_data.append({
+            "match_number": 0,
+            **{player_map[pid]: 1000 for pid in current_ratings}
+        })
+
+        # Process each match
+        for i, match in enumerate(matches):
+            # Get rating changes for this match
+            rating_changes = db.query(RatingHistory).filter(
+                RatingHistory.match_id == match.id
+            ).all()
+
+            # Update current ratings
+            for change in rating_changes:
+                if change.player_id in current_ratings:
+                    current_ratings[change.player_id] = change.post_elo
+
+            # Add data point
+            history_data.append({
+                "match_number": i + 1,
+                **{player_map[pid]: round(rating, 1) for pid, rating in current_ratings.items()}
+            })
+
+        # Get all-time highs for each player
+        all_time_highs = {}
+        for player in players:
+            history = db.query(RatingHistory).filter(
+                RatingHistory.player_id == player.id
+            ).all()
+
+            if history:
+                max_elo = max([h.post_elo for h in history] + [player.current_elo])
+            else:
+                max_elo = player.current_elo
+
+            all_time_highs[player.handle] = round(max_elo, 1)
+
+        return {
+            "history": history_data,
+            "all_time_highs": all_time_highs,
+            "players": [p.handle for p in players]
+        }
+
 
 @app.get("/add-match", response_class=FileResponse)
 def get_add_match_form():
