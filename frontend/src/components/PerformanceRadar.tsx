@@ -4,8 +4,10 @@ import {
   CardContent,
   Typography,
   Box,
-  ToggleButton,
-  ToggleButtonGroup,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -215,26 +217,25 @@ const PerformanceRadar: React.FC = () => {
             </Typography>
           </Box>
 
-          <ToggleButtonGroup
-            value={selectedPlayer}
-            exclusive
-            onChange={(_, value) => value && setSelectedPlayer(value)}
-            size={isMobile ? "small" : "medium"}
-            sx={{
-              flexWrap: isMobile ? 'wrap' : 'nowrap',
-              '& .MuiToggleButton-root': {
+          <FormControl size={isMobile ? "small" : "medium"} sx={{ minWidth: 150 }}>
+            <InputLabel id="player-select-label">Player</InputLabel>
+            <Select
+              labelId="player-select-label"
+              value={selectedPlayer}
+              label="Player"
+              onChange={(e) => setSelectedPlayer(e.target.value)}
+              sx={{
                 fontSize: isMobile ? '0.75rem' : '0.875rem',
-                padding: isMobile ? '4px 8px' : '6px 12px',
-              }
-            }}
-          >
-            <ToggleButton value="all">All</ToggleButton>
-            {players.map(player => (
-              <ToggleButton key={player} value={player}>
-                {player.charAt(0).toUpperCase() + player.slice(1)}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
+              }}
+            >
+              <MenuItem value="all">All Players</MenuItem>
+              {players.map(player => (
+                <MenuItem key={player} value={player}>
+                  {player.charAt(0).toUpperCase() + player.slice(1)}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
 
         <Box height={isMobile ? 250 : 320}>

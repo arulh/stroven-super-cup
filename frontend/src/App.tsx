@@ -6,6 +6,7 @@ import Champions from './components/Champions';
 import RivalriesChart from './components/RivalriesChart';
 import StreakChart from './components/StreakChart';
 import FormChart from './components/FormChart';
+import RecentEloTrendChart from './components/RecentEloTrendChart';
 import EloTrendChart from './components/EloTrendChart';
 import PerformanceRadar from './components/PerformanceRadar';
 import MatchFrequencyChart from './components/MatchFrequencyChart';
@@ -58,7 +59,10 @@ function App() {
 
             {/* Charts Grid - Full Width */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {/* ELO Trend Chart - Full width */}
+              {/* Recent ELO Trend Chart - Full width */}
+              <RecentEloTrendChart />
+
+              {/* All-Time ELO Trend Chart - Full width */}
               <EloTrendChart />
 
               {/* Form Chart - Full width */}
