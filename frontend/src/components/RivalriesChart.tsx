@@ -11,6 +11,8 @@ import {
 import { SportsKabaddi } from '@mui/icons-material';
 import { Rivalry } from '../types';
 import { fetchAllMatches } from '../services/api';
+import { getPlayerColor } from '../utils/playerColors';
+import { getPlayerImage } from '../utils/playerImages';
 
 const RivalriesChart: React.FC = () => {
   const [rivalries, setRivalries] = useState<Rivalry[]>([]);
@@ -87,9 +89,6 @@ const RivalriesChart: React.FC = () => {
     loadRivalries();
   }, []);
 
-  const generateAvatarUrl = (handle: string) => {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${handle}&backgroundColor=1e40af`;
-  };
 
   const getIntensityColor = (totalMatches: number) => {
     if (totalMatches >= 10) return theme.palette.error.main;
@@ -151,7 +150,7 @@ const RivalriesChart: React.FC = () => {
               <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
                 <Box display="flex" alignItems="center" flex={1}>
                   <Avatar
-                    src={generateAvatarUrl(rivalry.player1)}
+                    src={getPlayerImage(rivalry.player1)}
                     sx={{ width: 40, height: 40, mr: 1 }}
                   />
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -180,7 +179,7 @@ const RivalriesChart: React.FC = () => {
                     {rivalry.player2}
                   </Typography>
                   <Avatar
-                    src={generateAvatarUrl(rivalry.player2)}
+                    src={getPlayerImage(rivalry.player2)}
                     sx={{ width: 40, height: 40, ml: 1 }}
                   />
                 </Box>
@@ -193,7 +192,7 @@ const RivalriesChart: React.FC = () => {
                     <Box
                       sx={{
                         flex: player1Percentage,
-                        backgroundColor: theme.palette.success.main,
+                        backgroundColor: getPlayerColor(rivalry.player1),
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -225,7 +224,7 @@ const RivalriesChart: React.FC = () => {
                     <Box
                       sx={{
                         flex: player2Percentage,
-                        backgroundColor: theme.palette.error.main,
+                        backgroundColor: getPlayerColor(rivalry.player2),
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',

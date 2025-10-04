@@ -12,6 +12,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Analytics } from '@mui/icons-material';
 import { FormData } from '../types';
 import { fetchPlayers, fetchPlayerDetail } from '../services/api';
+import { getPlayerColor } from '../utils/playerColors';
+import { getPlayerImage } from '../utils/playerImages';
 
 const FormChart: React.FC = () => {
   const [formData, setFormData] = useState<FormData[]>([]);
@@ -71,9 +73,6 @@ const FormChart: React.FC = () => {
     loadFormData();
   }, []);
 
-  const generateAvatarUrl = (handle: string) => {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${handle}&backgroundColor=1e40af`;
-  };
 
   const getFormColor = (form: number) => {
     if (form >= 80) return '#10b981';
@@ -94,7 +93,7 @@ const FormChart: React.FC = () => {
   const chartData = formData.map(player => ({
     name: player.player,
     form: player.form,
-    color: getFormColor(player.form),
+    color: getPlayerColor(player.player),
   }));
 
   if (loading) {
@@ -175,15 +174,16 @@ const FormChart: React.FC = () => {
               const draws = player.last5Matches.filter(r => r === 'D').length;
               const losses = player.last5Matches.filter(r => r === 'L').length;
 
+              const playerColor = getPlayerColor(player.player);
               return (
                 <Box
                   key={player.player}
                   sx={{
                     mb: 2,
                     p: isMobile ? 1.5 : 2,
-                    border: `1px solid ${getFormColor(player.form)}40`,
+                    border: `1px solid ${playerColor}40`,
                     borderRadius: 2,
-                    backgroundColor: `${getFormColor(player.form)}08`,
+                    backgroundColor: `${playerColor}08`,
                   }}
                 >
                   <Box
@@ -195,12 +195,12 @@ const FormChart: React.FC = () => {
                   >
                     <Box display="flex" alignItems="center">
                       <Avatar
-                        src={generateAvatarUrl(player.player)}
+                        src={getPlayerImage(player.player)}
                         sx={{
                           width: isMobile ? 32 : 40,
                           height: isMobile ? 32 : 40,
                           mr: isMobile ? 1 : 2,
-                          border: `2px solid ${getFormColor(player.form)}40`,
+                          border: `2px solid ${playerColor}40`,
                         }}
                       />
                       <Box>
@@ -228,7 +228,7 @@ const FormChart: React.FC = () => {
                         </Typography>
                       )}
                       <Box display="flex" gap={0.25}>
-                        {player.last5Matches.map((result, index) => (
+                        {[...player.last5Matches].reverse().map((result, index) => (
                           <Box
                             key={index}
                             sx={{
@@ -259,7 +259,7 @@ const FormChart: React.FC = () => {
                         variant={isMobile ? "h6" : "h5"}
                         sx={{
                           fontWeight: 700,
-                          color: getFormColor(player.form),
+                          color: playerColor,
                         }}
                       >
                         {player.form}
