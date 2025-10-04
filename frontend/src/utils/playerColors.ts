@@ -1,17 +1,17 @@
 // Consistent player colors across the entire app
 const PLAYER_COLORS = [
-  '#10b981', // emerald-500 (green)
-  '#ef4444', // red-500
-  '#3b82f6', // blue-500
-  '#f59e0b', // amber-500
-  '#8b5cf6', // violet-500
-  '#ec4899', // pink-500
-  '#14b8a6', // teal-500
-  '#f97316', // orange-500
-  '#06b6d4', // cyan-500
-  '#84cc16', // lime-500
-  '#a855f7', // purple-500
-  '#0ea5e9', // sky-500
+  '#ef4444', // red
+  '#10b981', // green
+  '#3b82f6', // blue
+  '#f59e0b', // amber
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#14b8a6', // teal
+  '#f97316', // orange
+  '#06b6d4', // cyan
+  '#84cc16', // lime
+  '#a855f7', // purple
+  '#0ea5e9', // sky
 ];
 
 // Cache for consistent color assignment

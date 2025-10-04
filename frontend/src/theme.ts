@@ -5,30 +5,30 @@ export const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#1e40af', // Deep blue
-      light: '#3b82f6',
-      dark: '#1e3a8a',
+      main: '#3562A6', // Medium blue
+      light: '#6594C0',
+      dark: '#0E1E5B',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#60a5fa', // Sky blue
-      light: '#93bbfc',
-      dark: '#2563eb',
+      main: '#6594C0', // Light blue
+      light: '#8bb4d9',
+      dark: '#3562A6',
       contrastText: '#000000',
     },
     background: {
-      default: '#0f172a', // Slate 900
-      paper: '#1e293b', // Slate 800
+      default: '#091442', // Dark blue
+      paper: '#0E1E5B', // Deep blue
     },
     text: {
       primary: '#f1f5f9',
-      secondary: '#94a3b8',
+      secondary: '#6594C0',
     },
     success: {
-      main: '#10b981',
+      main: '#6594C0',
     },
     warning: {
-      main: '#f59e0b',
+      main: '#3562A6',
     },
     error: {
       main: '#ef4444',
@@ -52,7 +52,7 @@ export const theme = createTheme({
     h3: {
       fontSize: '1.5rem',
       fontWeight: 500,
-      color: '#cbd5e1',
+      color: '#6594C0',
     },
     h4: {
       fontSize: '1.25rem',
@@ -61,7 +61,7 @@ export const theme = createTheme({
     },
     body1: {
       fontSize: '0.95rem',
-      color: '#94a3b8',
+      color: '#6594C0',
       lineHeight: 1.6,
     },
   },
@@ -69,10 +69,10 @@ export const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          backgroundColor: '#1e293b',
-          border: '1px solid rgba(148, 163, 184, 0.1)',
+          backgroundColor: '#0E1E5B',
+          border: '1px solid rgba(101, 148, 192, 0.2)',
           borderRadius: '8px',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.3)',
           backdropFilter: 'blur(10px)',
         },
       },
@@ -85,10 +85,10 @@ export const theme = createTheme({
           fontWeight: 500,
         },
         contained: {
-          backgroundColor: '#3b82f6',
+          backgroundColor: '#3562A6',
           boxShadow: 'none',
           '&:hover': {
-            backgroundColor: '#2563eb',
+            backgroundColor: '#6594C0',
             boxShadow: 'none',
           },
         },
@@ -98,16 +98,16 @@ export const theme = createTheme({
       styleOverrides: {
         head: {
           backgroundColor: 'transparent',
-          color: '#94a3b8',
+          color: '#6594C0',
           fontWeight: 500,
           fontSize: '0.875rem',
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
-          borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+          borderBottom: '1px solid rgba(101, 148, 192, 0.2)',
         },
         body: {
           fontSize: '0.95rem',
-          borderBottom: '1px solid rgba(148, 163, 184, 0.05)',
+          borderBottom: '1px solid rgba(101, 148, 192, 0.1)',
         },
       },
     },

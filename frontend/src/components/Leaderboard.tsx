@@ -17,6 +17,7 @@ import {
 import { EmojiEvents, TrendingUp, TrendingDown } from '@mui/icons-material';
 import { Player } from '../types';
 import { fetchLeaderboard, fetchAllMatches, fetchPlayerStats, fetchPlayerDetail } from '../services/api';
+import { getPlayerImage } from '../utils/playerImages';
 
 interface EnhancedPlayer extends Player {
   allTimeHigh?: number;
@@ -130,9 +131,6 @@ const Leaderboard: React.FC = () => {
     return theme.palette.error.main;
   };
 
-  const generateAvatarUrl = (handle: string) => {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${handle}&backgroundColor=1e40af`;
-  };
 
   if (loading) {
     return (
@@ -213,7 +211,7 @@ const Leaderboard: React.FC = () => {
                     <TableCell>
                       <Box display="flex" alignItems="center">
                         <Avatar
-                          src={generateAvatarUrl(player.handle)}
+                          src={getPlayerImage(player.handle)}
                           sx={{
                             width: isMobile ? 32 : 48,
                             height: isMobile ? 32 : 48,

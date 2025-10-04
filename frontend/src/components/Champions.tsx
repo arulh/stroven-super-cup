@@ -7,6 +7,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { EmojiEvents } from '@mui/icons-material';
+import { getPlayerColor } from '../utils/playerColors';
 
 interface Champion {
   name: string;
@@ -18,9 +19,9 @@ const Champions: React.FC = () => {
   const theme = useTheme();
 
   const champions: Champion[] = [
-    { name: 'Niko', wins: 5, color: '#ffd700' },
-    { name: 'Joel', wins: 1, color: '#c0c0c0' },
-    { name: 'Arul', wins: 1, color: '#cd7f32' },
+    { name: 'Niko', wins: 5, color: getPlayerColor('Niko') },
+    { name: 'Joel', wins: 1, color: getPlayerColor('Joel') },
+    { name: 'Arul', wins: 1, color: getPlayerColor('Arul') },
   ];
 
   const sortedChampions = [...champions].sort((a, b) => b.wins - a.wins);
@@ -29,7 +30,7 @@ const Champions: React.FC = () => {
     <Card>
       <CardContent>
         <Box display="flex" alignItems="center" mb={2}>
-          <EmojiEvents sx={{ mr: 2, fontSize: '2rem', color: '#ffd700' }} />
+          <EmojiEvents sx={{ mr: 2, fontSize: '2rem', color: '#6594C0' }} />
           <Typography variant="h4" component="h3">
             Stroven Super Cup Champions
           </Typography>
@@ -79,7 +80,7 @@ const Champions: React.FC = () => {
                     top: 0,
                     right: 0,
                     backgroundColor: champion.color,
-                    color: '#0f172a',
+                    color: '#091442',
                     px: 1,
                     py: 0.5,
                     borderBottomLeftRadius: 8,
@@ -162,18 +163,21 @@ const Champions: React.FC = () => {
               mt: 1,
             }}
           >
-            {sortedChampions.map((champion) => (
-              <Typography
-                key={champion.name}
-                variant="caption"
-                sx={{
-                  color: champion.color,
-                  fontWeight: 500,
-                }}
-              >
-                {champion.name}: {Math.round((champion.wins / 6) * 100)}%
-              </Typography>
-            ))}
+            {sortedChampions.map((champion) => {
+              const totalWins = champions.reduce((sum, c) => sum + c.wins, 0);
+              return (
+                <Typography
+                  key={champion.name}
+                  variant="caption"
+                  sx={{
+                    color: champion.color,
+                    fontWeight: 500,
+                  }}
+                >
+                  {champion.name}: {Math.round((champion.wins / totalWins) * 100)}%
+                </Typography>
+              );
+            })}
           </Box>
         </Box>
       </CardContent>

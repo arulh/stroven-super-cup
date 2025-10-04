@@ -13,6 +13,7 @@ import { Analytics } from '@mui/icons-material';
 import { FormData } from '../types';
 import { fetchPlayers, fetchPlayerDetail } from '../services/api';
 import { getPlayerColor } from '../utils/playerColors';
+import { getPlayerImage } from '../utils/playerImages';
 
 const FormChart: React.FC = () => {
   const [formData, setFormData] = useState<FormData[]>([]);
@@ -72,9 +73,6 @@ const FormChart: React.FC = () => {
     loadFormData();
   }, []);
 
-  const generateAvatarUrl = (handle: string) => {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${handle}&backgroundColor=1e40af`;
-  };
 
   const getFormColor = (form: number) => {
     if (form >= 80) return '#10b981';
@@ -197,7 +195,7 @@ const FormChart: React.FC = () => {
                   >
                     <Box display="flex" alignItems="center">
                       <Avatar
-                        src={generateAvatarUrl(player.player)}
+                        src={getPlayerImage(player.player)}
                         sx={{
                           width: isMobile ? 32 : 40,
                           height: isMobile ? 32 : 40,

@@ -12,6 +12,7 @@ import {
 import { Whatshot, TrendingUp, TrendingDown } from '@mui/icons-material';
 import { StreakData } from '../types';
 import { fetchPlayers, fetchPlayerDetail } from '../services/api';
+import { getPlayerImage } from '../utils/playerImages';
 
 const StreakChart: React.FC = () => {
   const [streakData, setStreakData] = useState<StreakData[]>([]);
@@ -104,9 +105,6 @@ const StreakChart: React.FC = () => {
     loadStreakData();
   }, []);
 
-  const generateAvatarUrl = (handle: string) => {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${handle}&backgroundColor=1e40af`;
-  };
 
   const getStreakIcon = (type: 'win' | 'loss' | 'draw') => {
     if (type === 'win') return <TrendingUp sx={{ color: theme.palette.success.main }} />;
@@ -168,7 +166,7 @@ const StreakChart: React.FC = () => {
                 {/* Player Info */}
                 <Box display="flex" alignItems="center">
                   <Avatar
-                    src={generateAvatarUrl(player.player)}
+                    src={getPlayerImage(player.player)}
                     sx={{
                       width: 48,
                       height: 48,
