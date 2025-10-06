@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { Whatshot, TrendingUp, TrendingDown } from '@mui/icons-material';
 import { StreakData } from '../types';
-import { fetchPlayers, fetchPlayerDetail } from '../services/api';
+import { fetchPlayers, fetchAllMatches } from '../services/api';
 import { getPlayerImage } from '../utils/playerImages';
 
 const StreakChart: React.FC = () => {
@@ -23,9 +23,15 @@ const StreakChart: React.FC = () => {
     const loadStreakData = async () => {
       try {
         const players = await fetchPlayers();
-        const streakPromises = players.map(async (player) => {
-          const detail = await fetchPlayerDetail(player.handle);
-          if (!detail || !detail.recent || detail.recent.length === 0) return null;
+        const allMatches = await fetchAllMatches();
+
+        const streakDataResults = players.map((player) => {
+          // Filter matches for this player
+          const playerMatches = allMatches
+            .filter(m => m.p1 === player.handle || m.p2 === player.handle)
+            .sort((a, b) => new Date(a.played_at).getTime() - new Date(b.played_at).getTime());
+
+          if (playerMatches.length === 0) return null;
 
           // Calculate current streak
           let currentStreak = 0;
@@ -35,9 +41,8 @@ const StreakChart: React.FC = () => {
           let currentWinStreak = 0;
           let currentLossStreak = 0;
 
-          // Process recent matches to determine streaks (reverse order - oldest to newest)
-          const reversedMatches = [...detail.recent].reverse();
-          for (const match of reversedMatches) {
+          // Process all matches to determine streaks (oldest to newest)
+          for (const match of playerMatches) {
             const [p1Score, p2Score] = match.score.split('-').map(Number);
             const isP1 = match.p1 === player.handle;
             const playerScore = isP1 ? p1Score : p2Score;
@@ -64,24 +69,22 @@ const StreakChart: React.FC = () => {
             }
           }
 
-          // Determine current streak
-          if (detail.recent.length > 0) {
-            const lastMatch = detail.recent[0];
-            const [p1Score, p2Score] = lastMatch.score.split('-').map(Number);
-            const isP1 = lastMatch.p1 === player.handle;
-            const playerScore = isP1 ? p1Score : p2Score;
-            const opponentScore = isP1 ? p2Score : p1Score;
+          // Determine current streak from most recent match
+          const lastMatch = playerMatches[playerMatches.length - 1];
+          const [p1Score, p2Score] = lastMatch.score.split('-').map(Number);
+          const isP1 = lastMatch.p1 === player.handle;
+          const playerScore = isP1 ? p1Score : p2Score;
+          const opponentScore = isP1 ? p2Score : p1Score;
 
-            if (playerScore > opponentScore) {
-              streakType = 'win';
-              currentStreak = currentWinStreak;
-            } else if (playerScore < opponentScore) {
-              streakType = 'loss';
-              currentStreak = currentLossStreak;
-            } else {
-              streakType = 'draw';
-              currentStreak = 1;
-            }
+          if (playerScore > opponentScore) {
+            streakType = 'win';
+            currentStreak = currentWinStreak;
+          } else if (playerScore < opponentScore) {
+            streakType = 'loss';
+            currentStreak = currentLossStreak;
+          } else {
+            streakType = 'draw';
+            currentStreak = 1;
           }
 
           return {
@@ -93,7 +96,7 @@ const StreakChart: React.FC = () => {
           };
         });
 
-        const results = (await Promise.all(streakPromises)).filter(Boolean) as StreakData[];
+        const results = streakDataResults.filter(Boolean) as StreakData[];
         setStreakData(results);
       } catch (error) {
         console.error('Error loading streak data:', error);

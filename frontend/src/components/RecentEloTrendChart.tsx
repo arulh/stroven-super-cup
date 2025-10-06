@@ -31,7 +31,7 @@ const RecentEloTrendChart: React.FC = () => {
   const [eloHistory, setEloHistory] = useState<EloHistoryPoint[]>([]);
   const [players, setPlayers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [matchCount, setMatchCount] = useState(15);
+  const [matchCount, setMatchCount] = useState(20);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -186,7 +186,6 @@ const RecentEloTrendChart: React.FC = () => {
                     ? {
                         value: "Match Number",
                         position: "insideBottom",
-                        offset: -10,
                         style: {
                           textAnchor: "middle",
                           fill: theme.palette.text.secondary,
@@ -232,9 +231,11 @@ const RecentEloTrendChart: React.FC = () => {
                 labelFormatter={(label) => `After Match ${label}`}
               />
               <Legend
+                verticalAlign="bottom"
                 wrapperStyle={{
                   color: theme.palette.text.primary,
                   fontSize: isMobile ? "12px" : "14px",
+                  bottom: "5px",
                 }}
                 iconSize={isMobile ? 12 : 18}
               />

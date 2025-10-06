@@ -61,26 +61,10 @@ export const fetchPlayerDetail = async (handle: string): Promise<PlayerDetail | 
 };
 
 export const fetchAllMatches = async (): Promise<Match[]> => {
-  // Since there's no direct matches endpoint, we'll fetch from all players
   try {
-    const players = await fetchPlayers();
-    const allMatches: Match[] = [];
-
-    for (const player of players) {
-      const detail = await fetchPlayerDetail(player.handle);
-      if (detail && detail.recent) {
-        allMatches.push(...detail.recent);
-      }
-    }
-
-    // Remove duplicates and sort by date
-    const uniqueMatches = Array.from(
-      new Map(allMatches.map(m => [`${m.played_at}-${m.p1}-${m.p2}-${m.score}`, m])).values()
-    );
-
-    return uniqueMatches.sort((a, b) =>
-      new Date(b.played_at).getTime() - new Date(a.played_at).getTime()
-    );
+    const response = await fetch(`${API_URL}/api/matches`);
+    const data = await response.json();
+    return data.matches;
   } catch (error) {
     console.error('Error fetching matches:', error);
     return [];

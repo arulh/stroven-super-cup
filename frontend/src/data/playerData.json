@@ -3,56 +3,65 @@
     {
       "handle": "Niko",
       "imagePath": "/player-images/niko.jpeg",
-      "description": "The undisputed champion and dominant force of the Stroven Super Cup",
+      "description": "An undisputed giant of the Stroven Super Cup.",
       "sscWins": 5,
       "height": "5'11\"",
       "nationality": "🇨🇦 Canada",
-      "playingStyle": "Tactical Master"
+      "playingStyle": "Aggressive Pressing"
     },
     {
       "handle": "Joel",
       "imagePath": "/player-images/joel.jpeg",
-      "description": "Rising competitor with exceptional technical skills",
+      "description": "Rising competitor with a bright future.",
       "sscWins": 1,
       "height": "6'0\"",
-      "nationality": "🇺🇸 USA",
+      "nationality": "🇨🇦 Canada",
       "playingStyle": "Balanced"
     },
     {
       "handle": "Arul",
       "imagePath": "/player-images/arul.JPG",
-      "description": "Championship winner with fierce determination",
+      "description": "Championship winner who isn't afraid to go after the little guy.",
       "sscWins": 1,
       "height": "5'10\"",
-      "nationality": "🇮🇳 India",
-      "playingStyle": "Counter-Attack"
+      "nationality": "🇨🇦 Canada",
+      "playingStyle": "Possesion"
     },
     {
       "handle": "Colin",
       "imagePath": "/player-images/colin.jpeg",
-      "description": "Skilled veteran with years of experience",
+      "description": "Skilled veteran with years of experience.",
       "sscWins": 0,
       "height": "6'1\"",
-      "nationality": "🇬🇧 UK",
-      "playingStyle": "Possession"
+      "nationality": "🇨🇦 Canada",
+      "playingStyle": "Balanced"
     },
     {
       "handle": "Daniel",
       "imagePath": "/player-images/daniel.JPG",
-      "description": "Emerging talent with potential for greatness",
+      "description": "Loyal to only one club. #MiaSanMia",
       "sscWins": 0,
       "height": "5'9\"",
-      "nationality": "🇩🇪 Germany",
-      "playingStyle": "Speed & Agility"
+      "nationality": "🇨🇦 Canada",
+      "playingStyle": "Balanced"
     },
     {
       "handle": "Dimitri",
       "imagePath": "/player-images/dimitri.jpg",
-      "description": "Strategic player known for calculated plays",
+      "description": "Incredible potential just waiting to be fulfilled.",
       "sscWins": 0,
       "height": "6'2\"",
-      "nationality": "🇷🇺 Russia",
-      "playingStyle": "Defensive"
+      "nationality": "🇨🇦 Canada",
+      "playingStyle": "Balanced"
+    },
+    {
+      "handle": "Anthony",
+      "imagePath": "/player-images/anthony.jpg",
+      "description": "An O.G. of the game.",
+      "sscWins": 0,
+      "height": "6'2\"",
+      "nationality": "🇺🇸 USA",
+      "playingStyle": "Counter-Attack"
     }
   ],
   "defaultImage": "/player-images/default-player.svg"
