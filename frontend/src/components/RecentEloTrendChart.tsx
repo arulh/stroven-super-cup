@@ -6,6 +6,7 @@ import {
   Box,
   useTheme,
   useMediaQuery,
+  Slider,
 } from "@mui/material";
 import {
   LineChart,
@@ -18,7 +19,7 @@ import {
   Legend,
 } from "recharts";
 import { TrendingUp } from "@mui/icons-material";
-import { fetchPlayers, fetchAllMatches } from "../services/api";
+import { fetchPlayers } from "../services/api";
 import { getPlayerColors } from "../utils/playerColors";
 
 interface EloHistoryPoint {
@@ -26,10 +27,11 @@ interface EloHistoryPoint {
   [key: string]: number;
 }
 
-const EloTrendChart: React.FC = () => {
+const RecentEloTrendChart: React.FC = () => {
   const [eloHistory, setEloHistory] = useState<EloHistoryPoint[]>([]);
   const [players, setPlayers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [matchCount, setMatchCount] = useState(20);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -90,11 +92,15 @@ const EloTrendChart: React.FC = () => {
   // Get consistent colors for all players
   const playerColors = getPlayerColors(players);
 
+  // Filter to show only recent matches
+  const recentHistory =
+    eloHistory.length > matchCount ? eloHistory.slice(-matchCount) : eloHistory;
+
   if (loading) {
     return (
       <Card>
         <CardContent>
-          <Typography>Loading ELO trends...</Typography>
+          <Typography>Loading recent ELO trends...</Typography>
         </CardContent>
       </Card>
     );
@@ -104,6 +110,15 @@ const EloTrendChart: React.FC = () => {
   if (eloHistory.length < 2) {
     return null;
   }
+
+  const marks = [
+    { value: 5, label: "5" },
+    { value: 10, label: "10" },
+    { value: 15, label: "15" },
+    { value: 20, label: "20" },
+    { value: 25, label: "25" },
+    { value: 30, label: "30" },
+  ];
 
   return (
     <Card>
@@ -117,15 +132,39 @@ const EloTrendChart: React.FC = () => {
             }}
           />
           <Typography variant="h4" component="h3">
-            All-Time ELO Rating Progression
+            Recent ELO Rating Progression
           </Typography>
+        </Box>
+
+        {/* Match Count Slider */}
+        <Box mb={3} px={isMobile ? 1 : 2}>
+          <Typography variant="body2" color="textSecondary" gutterBottom>
+            Number of recent matches to display: {matchCount}
+          </Typography>
+          <Slider
+            value={matchCount}
+            onChange={(_, value) => setMatchCount(value as number)}
+            min={5}
+            max={30}
+            step={5}
+            marks={marks}
+            valueLabelDisplay="auto"
+            sx={{
+              color: theme.palette.secondary.main,
+              "& .MuiSlider-markLabel": {
+                color: theme.palette.text.secondary,
+                fontSize: isMobile ? "0.65rem" : "0.75rem",
+              },
+            }}
+          />
         </Box>
 
         <Box height={isMobile ? 250 : 400}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
-              data={eloHistory}
+              data={recentHistory}
               margin={{
+                top: 20,
                 right: isMobile ? 10 : 30,
                 left: isMobile ? 0 : 20,
                 bottom: isMobile ? 40 : 20,
@@ -147,7 +186,6 @@ const EloTrendChart: React.FC = () => {
                     ? {
                         value: "Match Number",
                         position: "insideBottom",
-                        offset: -10,
                         style: {
                           textAnchor: "middle",
                           fill: theme.palette.text.secondary,
@@ -295,4 +333,4 @@ const EloTrendChart: React.FC = () => {
   );
 };
 
-export default EloTrendChart;
+export default RecentEloTrendChart;

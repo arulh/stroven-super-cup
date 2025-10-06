@@ -14,7 +14,7 @@ from logger_cfg import configure_logging
 
 HOST = os.getenv("APP_HOST", "0.0.0.0")
 PORT = int(os.getenv("APP_PORT", "8000"))
-DB_PATH = os.getenv("DB_PATH", "/data/fifa.sqlite")
+DB_PATH = os.getenv("DB_PATH", "/data/rpi_09182025.sqlite")
 ELO_K = float(os.getenv("ELO_K", "32"))
 SIG_MAX_SKEW = int(os.getenv("SIG_MAX_SKEW_SECONDS", "300"))
 NONCE_TTL = int(os.getenv("NONCE_TTL_SECONDS", "900"))
@@ -103,7 +103,7 @@ def player_detail(handle: str):
         recent = (
             db.query(Match)
               .filter((Match.p1_id == p.id) | (Match.p2_id == p.id))
-              .order_by(Match.played_at.desc())
+              .order_by(Match.played_at.desc(), Match.id.desc())
               .limit(20)
               .all()
         )
@@ -119,6 +119,98 @@ def player_detail(handle: str):
             ]
         }
     
+
+@app.get("/api/rating-history")
+def get_rating_history():
+    """Get rating history for all players to show ELO progression."""
+    with SessionLocal() as db:
+        # Get all matches in chronological order
+        matches = db.query(Match).order_by(Match.played_at.asc(), Match.id.asc()).all()
+
+        # Get all players
+        players = db.query(Player).all()
+        player_map = {p.id: p.handle for p in players}
+
+        # Track current ratings (everyone starts at 1000)
+        current_ratings = {p.handle: 1000.0 for p in players}
+        history = [{"match": 0, **current_ratings.copy()}]
+
+        # Process each match to build rating history
+        for i, match in enumerate(matches):
+            # Get rating changes for this match
+            ratings = db.query(RatingHistory).filter(
+                RatingHistory.match_id == match.id
+            ).all()
+
+            # Update ratings based on this match
+            for r in ratings:
+                player_handle = player_map.get(r.player_id)
+                if player_handle:
+                    current_ratings[player_handle] = r.post_elo
+
+            # Add snapshot after this match
+            history.append({
+                "match": i + 1,
+                **current_ratings.copy()
+            })
+
+        return {"history": history}
+
+
+@app.get("/api/matches")
+def get_all_matches():
+    """Get all matches with player names."""
+    with SessionLocal() as db:
+        matches = db.query(Match).order_by(Match.played_at.desc(), Match.id.desc()).all()
+        result = []
+        for m in matches:
+            p1 = db.query(Player).get(m.p1_id)
+            p2 = db.query(Player).get(m.p2_id)
+            result.append({
+                "played_at": m.played_at.isoformat(),
+                "p1": p1.handle,
+                "p2": p2.handle,
+                "score": f"{m.p1_score}-{m.p2_score}"
+            })
+        return {"matches": result}
+
+
+@app.get("/api/player-stats")
+def get_player_stats():
+    """Get all players with their all-time high ELO calculated from rating history."""
+    with SessionLocal() as db:
+        players = db.query(Player).all()
+        result = []
+
+        for player in players:
+            # Get all rating history for this player
+            history = db.query(RatingHistory).filter(
+                RatingHistory.player_id == player.id
+            ).all()
+
+            # Calculate all-time high from history
+            all_time_high = player.current_elo  # Start with current as minimum
+
+            # Check all historical ratings
+            for h in history:
+                if h.post_elo > all_time_high:
+                    all_time_high = h.post_elo
+                # Also check pre_elo in case it was higher
+                if h.pre_elo > all_time_high:
+                    all_time_high = h.pre_elo
+
+            result.append({
+                "handle": player.handle,
+                "name": player.name,
+                "current_elo": round(player.current_elo, 1),
+                "all_time_high": round(all_time_high, 1),
+                "played": player.matches_played,
+                "wins": player.wins,
+                "losses": player.losses
+            })
+
+        return {"players": result}
+
 
 @app.get("/add-match", response_class=FileResponse)
 def get_add_match_form():

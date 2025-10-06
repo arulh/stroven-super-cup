@@ -4,14 +4,17 @@ import {
   CardContent,
   Typography,
   Box,
-  ToggleButton,
-  ToggleButtonGroup,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Legend } from 'recharts';
 import { Psychology } from '@mui/icons-material';
 import { fetchPlayers, fetchAllMatches } from '../services/api';
+import { getPlayerColor } from '../utils/playerColors';
 
 interface PerformanceMetric {
   metric: string;
@@ -168,12 +171,6 @@ const PerformanceRadar: React.FC = () => {
     loadPerformanceData();
   }, []);
 
-  const playerColors: { [key: string]: string } = {
-    niko: '#10b981',
-    arul: '#ef4444',
-    joel: '#60a5fa',
-    daniel: '#f59e0b',
-  };
 
   const getDisplayData = () => {
     if (selectedPlayer === 'all') {
@@ -220,26 +217,25 @@ const PerformanceRadar: React.FC = () => {
             </Typography>
           </Box>
 
-          <ToggleButtonGroup
-            value={selectedPlayer}
-            exclusive
-            onChange={(_, value) => value && setSelectedPlayer(value)}
-            size={isMobile ? "small" : "medium"}
-            sx={{
-              flexWrap: isMobile ? 'wrap' : 'nowrap',
-              '& .MuiToggleButton-root': {
+          <FormControl size={isMobile ? "small" : "medium"} sx={{ minWidth: 150 }}>
+            <InputLabel id="player-select-label">Player</InputLabel>
+            <Select
+              labelId="player-select-label"
+              value={selectedPlayer}
+              label="Player"
+              onChange={(e) => setSelectedPlayer(e.target.value)}
+              sx={{
                 fontSize: isMobile ? '0.75rem' : '0.875rem',
-                padding: isMobile ? '4px 8px' : '6px 12px',
-              }
-            }}
-          >
-            <ToggleButton value="all">All</ToggleButton>
-            {players.map(player => (
-              <ToggleButton key={player} value={player}>
-                {player.charAt(0).toUpperCase() + player.slice(1)}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
+              }}
+            >
+              <MenuItem value="all">All Players</MenuItem>
+              {players.map(player => (
+                <MenuItem key={player} value={player}>
+                  {player.charAt(0).toUpperCase() + player.slice(1)}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
 
         <Box height={isMobile ? 250 : 320}>
@@ -269,23 +265,23 @@ const PerformanceRadar: React.FC = () => {
                     key={player}
                     name={player.charAt(0).toUpperCase() + player.slice(1)}
                     dataKey={player}
-                    stroke={playerColors[player] || '#94a3b8'}
-                    fill={playerColors[player] || '#94a3b8'}
+                    stroke={getPlayerColor(player)}
+                    fill={getPlayerColor(player)}
                     fillOpacity={0.1}
                     strokeWidth={isMobile ? 1.5 : 2}
-                    dot={{ fill: playerColors[player] || '#94a3b8', strokeWidth: 2, r: isMobile ? 2 : 4 }}
+                    dot={{ fill: getPlayerColor(player), strokeWidth: 2, r: isMobile ? 2 : 4 }}
                   />
                 ))
               ) : (
                 <Radar
                   name={selectedPlayer.charAt(0).toUpperCase() + selectedPlayer.slice(1)}
                   dataKey={selectedPlayer}
-                  stroke={playerColors[selectedPlayer] || '#94a3b8'}
-                  fill={playerColors[selectedPlayer] || '#94a3b8'}
+                  stroke={getPlayerColor(selectedPlayer)}
+                  fill={getPlayerColor(selectedPlayer)}
                   fillOpacity={0.2}
                   strokeWidth={isMobile ? 2 : 3}
                   dot={{
-                    fill: playerColors[selectedPlayer] || '#94a3b8',
+                    fill: getPlayerColor(selectedPlayer),
                     strokeWidth: 2,
                     r: isMobile ? 4 : 6,
                   }}
