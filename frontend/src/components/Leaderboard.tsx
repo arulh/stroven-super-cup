@@ -230,10 +230,7 @@ const Leaderboard: React.FC = () => {
                             sx={{
                               ml: getPositionIcon(position) ? 1 : 0,
                               fontWeight: position <= 3 ? 700 : 400,
-                              color:
-                                position <= 3
-                                  ? theme.palette.secondary.main
-                                  : "inherit",
+                              color: theme.palette.secondary.main,
                             }}
                           >
                             #{position}
@@ -261,11 +258,11 @@ const Leaderboard: React.FC = () => {
                           >
                             {player.name}
                           </Typography>
-                          {!isMobile && (
+                          {/* {!isMobile && (
                             <Typography variant="body2" sx={{ opacity: 0.7 }}>
                               @{player.handle}
                             </Typography>
-                          )}
+                          )} */}
                         </Box>
                       </Box>
                     </TableCell>
