@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -7,12 +7,12 @@ import {
   Avatar,
   Chip,
   useTheme,
-} from '@mui/material';
-import { SportsKabaddi } from '@mui/icons-material';
-import { Rivalry } from '../types';
-import { fetchAllMatches } from '../services/api';
-import { getPlayerColor } from '../utils/playerColors';
-import { getPlayerImage } from '../utils/playerImages';
+} from "@mui/material";
+import { SportsKabaddi } from "@mui/icons-material";
+import { Rivalry } from "../types";
+import { fetchAllMatches } from "../services/api";
+import { getPlayerColor } from "../utils/playerColors";
+import { getPlayerImage } from "../utils/playerImages";
 
 const RivalriesChart: React.FC = () => {
   const [rivalries, setRivalries] = useState<Rivalry[]>([]);
@@ -27,9 +27,9 @@ const RivalriesChart: React.FC = () => {
         // Build rivalry data from matches
         const rivalryMap = new Map<string, Rivalry>();
 
-        matches.forEach(match => {
-          const [p1Score, p2Score] = match.score.split('-').map(Number);
-          const key = [match.p1, match.p2].sort().join('-');
+        matches.forEach((match) => {
+          const [p1Score, p2Score] = match.score.split("-").map(Number);
+          const key = [match.p1, match.p2].sort().join("-");
 
           if (!rivalryMap.has(key)) {
             rivalryMap.set(key, {
@@ -40,47 +40,74 @@ const RivalriesChart: React.FC = () => {
               draws: 0,
               totalMatches: 0,
               avgGoalDifference: 0,
+              player1BiggestWin: undefined,
+              player2BiggestWin: undefined,
             });
           }
 
           const rivalry = rivalryMap.get(key)!;
           rivalry.totalMatches++;
 
-          if (p1Score > p2Score) {
-            if (match.p1 === rivalry.player1) {
-              rivalry.player1Wins++;
-              rivalry.avgGoalDifference += (p1Score - p2Score);
-            } else {
-              rivalry.player2Wins++;
-              rivalry.avgGoalDifference -= (p1Score - p2Score);
+          // Determine winner and scores from rivalry perspective
+          let player1Score: number, player2Score: number;
+
+          if (match.p1 === rivalry.player1) {
+            player1Score = p1Score;
+            player2Score = p2Score;
+          } else {
+            player1Score = p2Score;
+            player2Score = p1Score;
+          }
+
+          const goalDiff = player1Score - player2Score;
+
+          if (player1Score > player2Score) {
+            // Player1 won
+            rivalry.player1Wins++;
+            rivalry.avgGoalDifference += goalDiff;
+            if (
+              !rivalry.player1BiggestWin ||
+              goalDiff > rivalry.player1BiggestWin.goalDifference
+            ) {
+              rivalry.player1BiggestWin = {
+                score: `${player1Score}-${player2Score}`,
+                goalDifference: goalDiff,
+              };
             }
-          } else if (p2Score > p1Score) {
-            if (match.p2 === rivalry.player1) {
-              rivalry.player1Wins++;
-              rivalry.avgGoalDifference += (p2Score - p1Score);
-            } else {
-              rivalry.player2Wins++;
-              rivalry.avgGoalDifference -= (p2Score - p1Score);
+          } else if (player2Score > player1Score) {
+            // Player2 won
+            rivalry.player2Wins++;
+            rivalry.avgGoalDifference += goalDiff; // goalDiff is negative here
+            if (
+              !rivalry.player2BiggestWin ||
+              -goalDiff > rivalry.player2BiggestWin.goalDifference
+            ) {
+              rivalry.player2BiggestWin = {
+                score: `${player2Score}-${player1Score}`,
+                goalDifference: -goalDiff, // Make it positive
+              };
             }
           } else {
+            // Draw
             rivalry.draws++;
           }
         });
 
         // Calculate average goal difference
-        rivalryMap.forEach(rivalry => {
+        rivalryMap.forEach((rivalry) => {
           if (rivalry.totalMatches > 0) {
-            rivalry.avgGoalDifference = rivalry.avgGoalDifference / rivalry.totalMatches;
+            rivalry.avgGoalDifference =
+              rivalry.avgGoalDifference / rivalry.totalMatches;
           }
         });
 
         const rivalriesArray = Array.from(rivalryMap.values())
-          .filter(r => r.totalMatches >= 3) // Only show rivalries with 3+ matches
+          .filter((r) => r.totalMatches >= 3) // Only show rivalries with 3+ matches
           .sort((a, b) => b.totalMatches - a.totalMatches);
 
         setRivalries(rivalriesArray);
       } catch (error) {
-        console.error('Error loading rivalries:', error);
+        console.error("Error loading rivalries:", error);
       } finally {
         setLoading(false);
       }
@@ -88,7 +115,6 @@ const RivalriesChart: React.FC = () => {
 
     loadRivalries();
   }, []);
-
 
   const getIntensityColor = (totalMatches: number) => {
     if (totalMatches >= 10) return theme.palette.error.main;
@@ -98,10 +124,10 @@ const RivalriesChart: React.FC = () => {
   };
 
   const getIntensityLabel = (totalMatches: number) => {
-    if (totalMatches >= 10) return 'LEGENDARY';
-    if (totalMatches >= 7) return 'INTENSE';
-    if (totalMatches >= 5) return 'HEATED';
-    return 'DEVELOPING';
+    if (totalMatches >= 35) return "LEGENDARY";
+    if (totalMatches >= 20) return "INTENSE";
+    if (totalMatches >= 10) return "HEATED";
+    return "DEVELOPING";
   };
 
   if (loading) {
@@ -123,7 +149,13 @@ const RivalriesChart: React.FC = () => {
     <Card>
       <CardContent>
         <Box display="flex" alignItems="center" mb={3}>
-          <SportsKabaddi sx={{ mr: 2, fontSize: '2rem', color: theme.palette.secondary.main }} />
+          <SportsKabaddi
+            sx={{
+              mr: 2,
+              fontSize: "2rem",
+              color: theme.palette.secondary.main,
+            }}
+          />
           <Typography variant="h4" component="h3">
             Head-to-Head Rivalries
           </Typography>
@@ -131,8 +163,10 @@ const RivalriesChart: React.FC = () => {
 
         {/* Top Rivalries */}
         {rivalries.map((rivalry) => {
-          const player1Percentage = (rivalry.player1Wins / rivalry.totalMatches) * 100;
-          const player2Percentage = (rivalry.player2Wins / rivalry.totalMatches) * 100;
+          const player1Percentage =
+            (rivalry.player1Wins / rivalry.totalMatches) * 100;
+          const player2Percentage =
+            (rivalry.player2Wins / rivalry.totalMatches) * 100;
           const drawPercentage = (rivalry.draws / rivalry.totalMatches) * 100;
 
           return (
@@ -143,11 +177,16 @@ const RivalriesChart: React.FC = () => {
                 p: 2,
                 border: `1px solid ${theme.palette.divider}`,
                 borderRadius: 2,
-                backgroundColor: 'rgba(30, 64, 175, 0.02)',
+                backgroundColor: "rgba(30, 64, 175, 0.02)",
               }}
             >
               {/* Players */}
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+              <Box
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+                mb={2}
+              >
                 <Box display="flex" alignItems="center" flex={1}>
                   <Avatar
                     src={getPlayerImage(rivalry.player1)}
@@ -159,22 +198,32 @@ const RivalriesChart: React.FC = () => {
                 </Box>
 
                 <Box mx={2}>
-                  <Typography variant="body2" sx={{ opacity: 0.7, textAlign: 'center' }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ opacity: 0.7, textAlign: "center" }}
+                  >
                     VS
                   </Typography>
                   <Chip
                     label={getIntensityLabel(rivalry.totalMatches)}
                     size="small"
                     sx={{
-                      backgroundColor: `${getIntensityColor(rivalry.totalMatches)}20`,
+                      backgroundColor: `${getIntensityColor(
+                        rivalry.totalMatches
+                      )}20`,
                       color: getIntensityColor(rivalry.totalMatches),
                       fontWeight: 600,
-                      fontSize: '0.7rem',
+                      fontSize: "0.7rem",
                     }}
                   />
                 </Box>
 
-                <Box display="flex" alignItems="center" justifyContent="flex-end" flex={1}>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="flex-end"
+                  flex={1}
+                >
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
                     {rivalry.player2}
                   </Typography>
@@ -187,17 +236,22 @@ const RivalriesChart: React.FC = () => {
 
               {/* Win/Loss/Draw Bar */}
               <Box mb={2}>
-                <Box display="flex" height={32} borderRadius={1} overflow="hidden">
+                <Box
+                  display="flex"
+                  height={32}
+                  borderRadius={1}
+                  overflow="hidden"
+                >
                   {player1Percentage > 0 && (
                     <Box
                       sx={{
                         flex: player1Percentage,
                         backgroundColor: getPlayerColor(rivalry.player1),
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: '0.875rem',
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "white",
+                        fontSize: "0.875rem",
                         fontWeight: 600,
                       }}
                     >
@@ -209,11 +263,11 @@ const RivalriesChart: React.FC = () => {
                       sx={{
                         flex: drawPercentage,
                         backgroundColor: theme.palette.grey[600],
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: '0.875rem',
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "white",
+                        fontSize: "0.875rem",
                         fontWeight: 600,
                       }}
                     >
@@ -225,11 +279,11 @@ const RivalriesChart: React.FC = () => {
                       sx={{
                         flex: player2Percentage,
                         backgroundColor: getPlayerColor(rivalry.player2),
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: '0.875rem',
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "white",
+                        fontSize: "0.875rem",
                         fontWeight: 600,
                       }}
                     >
@@ -240,12 +294,20 @@ const RivalriesChart: React.FC = () => {
               </Box>
 
               {/* Stats */}
-              <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                mb={2}
+              >
                 <Box>
                   <Typography variant="body2" color="textSecondary">
                     Win Rate
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 600, color: theme.palette.success.main }}
+                  >
                     {player1Percentage.toFixed(1)}%
                   </Typography>
                 </Box>
@@ -267,14 +329,15 @@ const RivalriesChart: React.FC = () => {
                     variant="h6"
                     sx={{
                       fontWeight: 600,
-                      color: rivalry.avgGoalDifference > 0
-                        ? theme.palette.success.main
-                        : rivalry.avgGoalDifference < 0
-                        ? theme.palette.error.main
-                        : theme.palette.text.primary,
+                      color:
+                        rivalry.avgGoalDifference > 0
+                          ? theme.palette.success.main
+                          : rivalry.avgGoalDifference < 0
+                          ? theme.palette.error.main
+                          : theme.palette.text.primary,
                     }}
                   >
-                    {rivalry.avgGoalDifference > 0 && '+'}
+                    {rivalry.avgGoalDifference > 0 && "+"}
                     {rivalry.avgGoalDifference.toFixed(1)}
                   </Typography>
                 </Box>
@@ -283,9 +346,83 @@ const RivalriesChart: React.FC = () => {
                   <Typography variant="body2" color="textSecondary">
                     Win Rate
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 600, color: theme.palette.error.main }}
+                  >
                     {player2Percentage.toFixed(1)}%
                   </Typography>
+                </Box>
+              </Box>
+
+              {/* Biggest Wins */}
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                sx={{
+                  pt: 2,
+                  borderTop: `1px solid ${theme.palette.divider}`,
+                }}
+              >
+                <Box flex={1}>
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    sx={{ display: "block", mb: 0.5 }}
+                  >
+                    Biggest Win
+                  </Typography>
+                  {rivalry.player1BiggestWin ? (
+                    <Box>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          fontWeight: 700,
+                          color: getPlayerColor(rivalry.player1),
+                        }}
+                      >
+                        {rivalry.player1BiggestWin.score}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        (+{rivalry.player1BiggestWin.goalDifference} GD)
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="textSecondary">
+                      No wins yet
+                    </Typography>
+                  )}
+                </Box>
+
+                <Box flex={1} textAlign="right">
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    sx={{ display: "block", mb: 0.5 }}
+                  >
+                    Biggest Win
+                  </Typography>
+                  {rivalry.player2BiggestWin ? (
+                    <Box>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          fontWeight: 700,
+                          color: getPlayerColor(rivalry.player2),
+                        }}
+                      >
+                        {rivalry.player2BiggestWin.score}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        (+{rivalry.player2BiggestWin.goalDifference} GD)
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="textSecondary">
+                      No wins yet
+                    </Typography>
+                  )}
                 </Box>
               </Box>
             </Box>

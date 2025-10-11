@@ -35,6 +35,14 @@ export interface Rivalry {
   draws: number;
   totalMatches: number;
   avgGoalDifference: number;
+  player1BiggestWin?: {
+    score: string;
+    goalDifference: number;
+  };
+  player2BiggestWin?: {
+    score: string;
+    goalDifference: number;
+  };
 }
 
 export interface StreakData {
