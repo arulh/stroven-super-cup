@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -32,6 +32,7 @@ const RecentEloTrendChart: React.FC = () => {
   const [players, setPlayers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [matchCount, setMatchCount] = useState(20);
+  const [minMatches, setMinMatches] = useState(1);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -92,9 +93,61 @@ const RecentEloTrendChart: React.FC = () => {
   // Get consistent colors for all players
   const playerColors = getPlayerColors(players);
 
+  // Process history to add null values for inactive periods and calculate participation
+  const { processedHistory, playerParticipation } = useMemo(() => {
+    if (eloHistory.length === 0) {
+      return { processedHistory: [], playerParticipation: {} };
+    }
+
+    const participation: { [key: string]: number } = {};
+    const processed = eloHistory.map((point, index) => {
+      const newPoint: EloHistoryPoint = { match: point.match };
+
+      players.forEach((player) => {
+        const currentRating = point[player] as number;
+        const prevRating = index > 0 ? (eloHistory[index - 1][player] as number) : 1000;
+
+        // Check if player has started playing (rating changed from initial 1000 or is different from previous)
+        const hasStartedPlaying = currentRating !== 1000 || prevRating !== 1000;
+
+        // Check if this player was active in previous matches
+        let wasActiveBefore = false;
+        for (let i = 0; i < index; i++) {
+          const pastRating = eloHistory[i][player] as number;
+          if (pastRating !== 1000 || i > 0) {
+            wasActiveBefore = true;
+            break;
+          }
+        }
+
+        if (hasStartedPlaying || wasActiveBefore) {
+          newPoint[player] = currentRating;
+          // Count participation (matches where they actually played, not just existed)
+          if (index > 0 && currentRating !== prevRating) {
+            participation[player] = (participation[player] || 0) + 1;
+          }
+        } else {
+          newPoint[player] = null as any; // Set to null for periods before they joined
+        }
+      });
+
+      return newPoint;
+    });
+
+    return { processedHistory: processed, playerParticipation: participation };
+  }, [eloHistory, players]);
+
+  // Filter players based on minimum participation
+  const filteredPlayers = useMemo(() => {
+    return players.filter((player) => {
+      const participation = playerParticipation[player] || 0;
+      return participation >= minMatches;
+    });
+  }, [players, playerParticipation, minMatches]);
+
   // Filter to show only recent matches
   const recentHistory =
-    eloHistory.length > matchCount ? eloHistory.slice(-matchCount) : eloHistory;
+    processedHistory.length > matchCount ? processedHistory.slice(-matchCount) : processedHistory;
 
   if (loading) {
     return (
@@ -111,7 +164,13 @@ const RecentEloTrendChart: React.FC = () => {
     return null;
   }
 
-  const marks = [
+  // Calculate max participation for slider
+  const maxParticipation = Math.max(
+    ...Object.values(playerParticipation),
+    10
+  );
+
+  const matchCountMarks = [
     { value: 5, label: "5" },
     { value: 10, label: "10" },
     { value: 15, label: "15" },
@@ -136,6 +195,35 @@ const RecentEloTrendChart: React.FC = () => {
           </Typography>
         </Box>
 
+        {/* Participation Filter Slider */}
+        <Box mb={3} px={isMobile ? 1 : 2}>
+          <Typography variant="body2" color="textSecondary" gutterBottom>
+            Minimum matches played: {minMatches} (showing {filteredPlayers.length} of {players.length} players)
+          </Typography>
+          <Slider
+            value={minMatches}
+            onChange={(_, value) => setMinMatches(value as number)}
+            min={1}
+            max={Math.min(maxParticipation, 20)}
+            step={1}
+            marks={[
+              { value: 1, label: "1" },
+              { value: 5, label: "5" },
+              { value: 10, label: "10" },
+              { value: 15, label: "15" },
+              { value: 20, label: "20" },
+            ].filter(mark => mark.value <= maxParticipation)}
+            valueLabelDisplay="auto"
+            sx={{
+              color: theme.palette.primary.main,
+              "& .MuiSlider-markLabel": {
+                color: theme.palette.text.secondary,
+                fontSize: isMobile ? "0.65rem" : "0.75rem",
+              },
+            }}
+          />
+        </Box>
+
         {/* Match Count Slider */}
         <Box mb={3} px={isMobile ? 1 : 2}>
           <Typography variant="body2" color="textSecondary" gutterBottom>
@@ -147,7 +235,7 @@ const RecentEloTrendChart: React.FC = () => {
             min={5}
             max={30}
             step={5}
-            marks={marks}
+            marks={matchCountMarks}
             valueLabelDisplay="auto"
             sx={{
               color: theme.palette.secondary.main,
@@ -240,7 +328,7 @@ const RecentEloTrendChart: React.FC = () => {
                 iconSize={isMobile ? 12 : 18}
               />
 
-              {players.map((player) => (
+              {filteredPlayers.map((player) => (
                 <Line
                   key={player}
                   type="monotone"
@@ -248,6 +336,7 @@ const RecentEloTrendChart: React.FC = () => {
                   stroke={playerColors[player] || "#94a3b8"}
                   strokeWidth={isMobile ? 2 : 3}
                   dot={{ r: 2 }} // Small dots to show data points
+                  connectNulls={false} // Don't connect gaps when player is inactive
                   activeDot={{
                     r: isMobile ? 5 : 7,
                     stroke: playerColors[player] || "#94a3b8",
@@ -271,7 +360,7 @@ const RecentEloTrendChart: React.FC = () => {
             flexWrap="wrap"
             gap={isMobile ? 1 : 2}
           >
-            {players.map((player) => {
+            {filteredPlayers.map((player) => {
               const currentElo = eloHistory[eloHistory.length - 1]?.[
                 player
               ] as number;
