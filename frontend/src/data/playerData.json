@@ -4,7 +4,7 @@
       "handle": "Niko",
       "imagePath": "/player-images/niko.jpeg",
       "description": "An undisputed giant of the Stroven Super Cup.",
-      "sscWins": 5,
+      "sscWins": 7,
       "height": "5'11\"",
       "nationality": "🇨🇦 Canada",
       "playingStyle": "Aggressive Pressing"
@@ -12,7 +12,7 @@
     {
       "handle": "Joel",
       "imagePath": "/player-images/joel.jpeg",
-      "description": "Rising competitor with a bright future.",
+      "description": "Championship winner trying to establish himself among the best.",
       "sscWins": 1,
       "height": "6'0\"",
       "nationality": "🇨🇦 Canada",
@@ -48,7 +48,7 @@
     {
       "handle": "Dimitri",
       "imagePath": "/player-images/dimitri.jpg",
-      "description": "Incredible potential just waiting to be fulfilled.",
+      "description": "Incredible potential just waiting to claim first trophy.",
       "sscWins": 0,
       "height": "6'2\"",
       "nationality": "🇨🇦 Canada",
@@ -62,6 +62,15 @@
       "height": "6'2\"",
       "nationality": "🇺🇸 USA",
       "playingStyle": "Counter-Attack"
+    },
+    {
+      "handle": "Nate",
+      "imagePath": "/player-images/nate.jpg",
+      "description": "Upcoming rookie looking to prove himself in the big leagues.",
+      "sscWins": 0,
+      "height": "6'5\"",
+      "nationality": "🇨🇦 USA",
+      "playingStyle": "Balanced"
     }
   ],
   "defaultImage": "/player-images/default-player.svg"

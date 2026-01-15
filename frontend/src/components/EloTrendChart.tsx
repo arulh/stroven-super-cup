@@ -19,7 +19,7 @@ import {
   Legend,
 } from "recharts";
 import { TrendingUp } from "@mui/icons-material";
-import { fetchPlayers } from "../services/api";
+import { fetchPlayers, fetchRatingHistory } from "../services/api";
 import { getPlayerColors } from "../utils/playerColors";
 
 interface EloHistoryPoint {
@@ -39,11 +39,7 @@ const EloTrendChart: React.FC = () => {
     const loadEloData = async () => {
       try {
         // Fetch actual rating history from the backend
-        const response = await fetch(
-          "http://localhost:8000/api/rating-history"
-        );
-        const data = await response.json();
-        const history = data.history;
+        const history = await fetchRatingHistory();
 
         if (history && history.length > 0) {
           // Get player names from the history data

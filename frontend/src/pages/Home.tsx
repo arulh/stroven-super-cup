@@ -77,11 +77,11 @@ function Home() {
 
         {/* Charts Grid - Full Width */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {/* Recent ELO Trend Chart - Full width */}
-          <RecentEloTrendChart />
-
           {/* All-Time ELO Trend Chart - Full width */}
           <EloTrendChart />
+
+          {/* Recent ELO Trend Chart - Full width */}
+          <RecentEloTrendChart />
 
           {/* Form Chart - Full width */}
           <FormChart />
@@ -100,7 +100,6 @@ function Home() {
             <PerformanceRadar />
             <StreakChart />
           </Box>
-
         </Box>
       </Box>
     </Container>
