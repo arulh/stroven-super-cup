@@ -159,19 +159,44 @@ def get_rating_history():
 
 @app.get("/api/matches")
 def get_all_matches():
-    """Get all matches with player names."""
+    """Get all matches with player names and ELO changes."""
     with SessionLocal() as db:
         matches = db.query(Match).order_by(Match.played_at.desc(), Match.id.desc()).all()
         result = []
         for m in matches:
             p1 = db.query(Player).get(m.p1_id)
             p2 = db.query(Player).get(m.p2_id)
-            result.append({
+
+            # Get rating history for this match
+            p1_rating = db.query(RatingHistory).filter(
+                RatingHistory.match_id == m.id,
+                RatingHistory.player_id == m.p1_id
+            ).first()
+            p2_rating = db.query(RatingHistory).filter(
+                RatingHistory.match_id == m.id,
+                RatingHistory.player_id == m.p2_id
+            ).first()
+
+            match_data = {
                 "played_at": m.played_at.isoformat(),
+                "created_at": m.created_at.isoformat(),
                 "p1": p1.handle,
                 "p2": p2.handle,
                 "score": f"{m.p1_score}-{m.p2_score}"
-            })
+            }
+
+            # Add ELO data if available
+            if p1_rating:
+                match_data["p1_pre_elo"] = round(p1_rating.pre_elo, 1)
+                match_data["p1_post_elo"] = round(p1_rating.post_elo, 1)
+                match_data["p1_elo_change"] = round(p1_rating.post_elo - p1_rating.pre_elo, 1)
+
+            if p2_rating:
+                match_data["p2_pre_elo"] = round(p2_rating.pre_elo, 1)
+                match_data["p2_post_elo"] = round(p2_rating.post_elo, 1)
+                match_data["p2_elo_change"] = round(p2_rating.post_elo - p2_rating.pre_elo, 1)
+
+            result.append(match_data)
         return {"matches": result}
 
 

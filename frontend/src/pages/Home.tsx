@@ -7,6 +7,7 @@ import RivalriesChart from "../components/RivalriesChart";
 import StreakChart from "../components/StreakChart";
 import FormChart from "../components/FormChart";
 import RecentEloTrendChart from "../components/RecentEloTrendChart";
+import RecentSessionGames from "../components/RecentSessionGames";
 import EloTrendChart from "../components/EloTrendChart";
 import PerformanceRadar from "../components/PerformanceRadar";
 import introMessages from "../intro-messages.json";
@@ -81,7 +82,10 @@ function Home() {
           <EloTrendChart />
 
           {/* Recent ELO Trend Chart - Full width */}
-          <RecentEloTrendChart />
+          {/* <RecentEloTrendChart /> */}
+
+          {/* Recent Session Games - Full width */}
+          <RecentSessionGames />
 
           {/* Form Chart - Full width */}
           <FormChart />
