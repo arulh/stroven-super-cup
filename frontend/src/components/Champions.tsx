@@ -19,7 +19,7 @@ const Champions: React.FC = () => {
   const theme = useTheme();
 
   const champions: Champion[] = [
-    { name: 'Niko', wins: 7, color: getPlayerColor('Niko') },
+    { name: 'Niko', wins: 8, color: getPlayerColor('Niko') },
     { name: 'Arul', wins: 1, color: getPlayerColor('Arul') },
     { name: 'Joel', wins: 1, color: getPlayerColor('Joel') },
 
