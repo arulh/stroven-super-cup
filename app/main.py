@@ -264,8 +264,8 @@ async def create_match_insecure(request: Request):
                 db.flush()
             return p
 
-        p1 = get_or_create(data.p1_handle)
-        p2 = get_or_create(data.p2_handle)
+        p1 = get_or_create(data.p1_handle.lower())
+        p2 = get_or_create(data.p2_handle.lower())
 
         # Elo update
         new_p1, new_p2 = update_elo(p1.current_elo, p2.current_elo, data.p1_score, data.p2_score, k=float(os.getenv("ELO_K","32")))
@@ -346,13 +346,13 @@ async def create_match(request: Request):
         def get_or_create(handle: str):
             p = db.query(Player).filter(Player.handle == handle).first()
             if not p:
-                p = Player(handle=handle, name=handle)
+                p = Player(handle=handle.lower(), name=handle.lower())
                 db.add(p)
                 db.flush()
             return p
 
-        p1 = get_or_create(data.p1_handle)
-        p2 = get_or_create(data.p2_handle)
+        p1 = get_or_create(data.p1_handle.lower())
+        p2 = get_or_create(data.p2_handle.lower())
 
         # Elo update
         new_p1, new_p2 = update_elo(p1.current_elo, p2.current_elo, data.p1_score, data.p2_score, k=float(os.getenv("ELO_K","32")))

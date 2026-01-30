@@ -4,7 +4,7 @@
       "handle": "Niko",
       "imagePath": "/player-images/niko.jpeg",
       "description": "An undisputed giant of the Stroven Super Cup.",
-      "sscWins": 7,
+      "sscWins": 9,
       "height": "5'11\"",
       "nationality": "🇨🇦 Canada",
       "playingStyle": "Aggressive Pressing"
@@ -69,8 +69,17 @@
       "description": "Upcoming rookie looking to prove himself in the big leagues.",
       "sscWins": 0,
       "height": "6'5\"",
-      "nationality": "🇨🇦 USA",
-      "playingStyle": "Balanced"
+      "nationality": "🇨🇦 Canada",
+      "playingStyle": "Skilled Dribbling"
+    },
+    {
+      "handle": "Tony",
+      "imagePath": "/player-images/tony.png",
+      "description": "Team China.",
+      "sscWins": 0,
+      "height": "6'5\"",
+      "nationality": "🇨🇳 China",
+      "playingStyle": "Unknown"
     }
   ],
   "defaultImage": "/player-images/default-player.svg"
