@@ -23,13 +23,12 @@ import {
   fetchPlayerDetail,
 } from "../services/api";
 import { getPlayerImage } from "../utils/playerImages";
+import { MIN_RANKED_MATCHES } from "../constants";
 
 interface EnhancedPlayer extends Player {
   allTimeHigh?: number;
   recentForm?: ("W" | "L" | "D")[];
 }
-
-const MIN_RANKED_MATCHES = 10;
 
 const Leaderboard: React.FC = () => {
   const [players, setPlayers] = useState<EnhancedPlayer[]>([]);

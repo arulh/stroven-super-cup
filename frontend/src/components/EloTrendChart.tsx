@@ -21,13 +21,18 @@ import {
 import { TrendingUp } from "@mui/icons-material";
 import { fetchPlayers, fetchRatingHistory } from "../services/api";
 import { getPlayerColors } from "../utils/playerColors";
+import { MIN_RANKED_MATCHES } from "../constants";
 
 interface EloHistoryPoint {
   match: number;
   [key: string]: number;
 }
 
-const EloTrendChart: React.FC = () => {
+interface EloTrendChartProps {
+  showProvisional?: boolean;
+}
+
+const EloTrendChart: React.FC<EloTrendChartProps> = ({ showProvisional = false }) => {
   const [eloHistory, setEloHistory] = useState<EloHistoryPoint[]>([]);
   const [players, setPlayers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,13 +137,14 @@ const EloTrendChart: React.FC = () => {
     return { processedHistory: processed, playerParticipation: participation };
   }, [eloHistory, players]);
 
-  // Filter players based on minimum participation
+  // Filter players based on minimum participation and provisional toggle
   const filteredPlayers = useMemo(() => {
     return players.filter((player) => {
       const participation = playerParticipation[player] || 0;
+      if (!showProvisional && participation < MIN_RANKED_MATCHES) return false;
       return participation >= minMatches;
     });
-  }, [players, playerParticipation, minMatches]);
+  }, [players, playerParticipation, minMatches, showProvisional]);
 
   if (loading) {
     return (

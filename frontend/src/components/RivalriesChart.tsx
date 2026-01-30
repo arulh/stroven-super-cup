@@ -13,9 +13,15 @@ import { Rivalry } from "../types";
 import { fetchAllMatches } from "../services/api";
 import { getPlayerColor } from "../utils/playerColors";
 import { getPlayerImage } from "../utils/playerImages";
+import { MIN_RANKED_MATCHES } from "../constants";
 
-const RivalriesChart: React.FC = () => {
+interface RivalriesChartProps {
+  showProvisional?: boolean;
+}
+
+const RivalriesChart: React.FC<RivalriesChartProps> = ({ showProvisional = false }) => {
   const [rivalries, setRivalries] = useState<Rivalry[]>([]);
+  const [playerMatchCounts, setPlayerMatchCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
 
@@ -23,6 +29,14 @@ const RivalriesChart: React.FC = () => {
     const loadRivalries = async () => {
       try {
         const matches = await fetchAllMatches();
+
+        // Count total matches per player
+        const matchCounts: Record<string, number> = {};
+        matches.forEach((match) => {
+          matchCounts[match.p1] = (matchCounts[match.p1] || 0) + 1;
+          matchCounts[match.p2] = (matchCounts[match.p2] || 0) + 1;
+        });
+        setPlayerMatchCounts(matchCounts);
 
         // Build rivalry data from matches
         const rivalryMap = new Map<string, Rivalry>();
@@ -140,8 +154,16 @@ const RivalriesChart: React.FC = () => {
     );
   }
 
+  const displayedRivalries = showProvisional
+    ? rivalries
+    : rivalries.filter(
+        (r) =>
+          (playerMatchCounts[r.player1] || 0) >= MIN_RANKED_MATCHES &&
+          (playerMatchCounts[r.player2] || 0) >= MIN_RANKED_MATCHES
+      );
+
   // Don't show if no rivalries
-  if (rivalries.length === 0) {
+  if (displayedRivalries.length === 0) {
     return null;
   }
 
@@ -162,7 +184,7 @@ const RivalriesChart: React.FC = () => {
         </Box>
 
         {/* Top Rivalries */}
-        {rivalries.map((rivalry) => {
+        {displayedRivalries.map((rivalry) => {
           const player1Percentage =
             (rivalry.player1Wins / rivalry.totalMatches) * 100;
           const player2Percentage =

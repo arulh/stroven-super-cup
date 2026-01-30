@@ -15,6 +15,7 @@ import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Responsi
 import { Psychology } from '@mui/icons-material';
 import { fetchPlayers, fetchAllMatches } from '../services/api';
 import { getPlayerColor } from '../utils/playerColors';
+import { MIN_RANKED_MATCHES } from '../constants';
 
 interface PerformanceMetric {
   metric: string;
@@ -22,11 +23,16 @@ interface PerformanceMetric {
   fullMark: number;
 }
 
-const PerformanceRadar: React.FC = () => {
+interface PerformanceRadarProps {
+  showProvisional?: boolean;
+}
+
+const PerformanceRadar: React.FC<PerformanceRadarProps> = ({ showProvisional = false }) => {
   const [selectedPlayer, setSelectedPlayer] = useState<string>('all');
   const [hoveredPlayer, setHoveredPlayer] = useState<string | null>(null);
   const [performanceData, setPerformanceData] = useState<PerformanceMetric[]>([]);
   const [players, setPlayers] = useState<string[]>([]);
+  const [playerPlayedCounts, setPlayerPlayedCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -37,6 +43,9 @@ const PerformanceRadar: React.FC = () => {
         const playersData = await fetchPlayers();
         const playerNames = playersData.map(p => p.handle);
         setPlayers(playerNames);
+        setPlayerPlayedCounts(
+          Object.fromEntries(playersData.map((p) => [p.handle, p.played]))
+        );
 
         // Get all matches for detailed statistics
         const allMatches = await fetchAllMatches();
@@ -193,9 +202,13 @@ const PerformanceRadar: React.FC = () => {
   }, []);
 
 
+  const displayedPlayers = showProvisional
+    ? players
+    : players.filter((p) => (playerPlayedCounts[p] || 0) >= MIN_RANKED_MATCHES);
+
   const getDisplayData = () => {
-    // Use hoveredPlayer if hovering, otherwise use selectedPlayer
-    const activePlayer = hoveredPlayer || selectedPlayer;
+    // Use hoveredPlayer if hovering, otherwise use effectiveSelectedPlayer
+    const activePlayer = hoveredPlayer || effectiveSelectedPlayer;
 
     if (activePlayer === 'all') {
       return performanceData;
@@ -219,8 +232,14 @@ const PerformanceRadar: React.FC = () => {
     );
   }
 
+  // Reset selection if current player is no longer in displayed list
+  const effectiveSelectedPlayer =
+    selectedPlayer !== 'all' && !displayedPlayers.includes(selectedPlayer)
+      ? 'all'
+      : selectedPlayer;
+
   // Don't show if insufficient data
-  if (players.length < 2) {
+  if (displayedPlayers.length < 2) {
     return null;
   }
 
@@ -246,7 +265,7 @@ const PerformanceRadar: React.FC = () => {
             <InputLabel id="player-select-label">Player</InputLabel>
             <Select
               labelId="player-select-label"
-              value={selectedPlayer}
+              value={effectiveSelectedPlayer}
               label="Player"
               onChange={(e) => setSelectedPlayer(e.target.value)}
               sx={{
@@ -260,7 +279,7 @@ const PerformanceRadar: React.FC = () => {
               >
                 All Players
               </MenuItem>
-              {players.map(player => (
+              {displayedPlayers.map(player => (
                 <MenuItem
                   key={player}
                   value={player}
@@ -307,8 +326,8 @@ const PerformanceRadar: React.FC = () => {
                 dot={{ fill: "#9ca3af", strokeWidth: 1, r: isMobile ? 2 : 3 }}
               />
 
-              {(hoveredPlayer || selectedPlayer) === 'all' ? (
-                players.map((player) => (
+              {(hoveredPlayer || effectiveSelectedPlayer) === 'all' ? (
+                displayedPlayers.map((player) => (
                   <Radar
                     key={player}
                     name={player.charAt(0).toUpperCase() + player.slice(1)}
@@ -322,14 +341,14 @@ const PerformanceRadar: React.FC = () => {
                 ))
               ) : (
                 <Radar
-                  name={(hoveredPlayer || selectedPlayer).charAt(0).toUpperCase() + (hoveredPlayer || selectedPlayer).slice(1)}
-                  dataKey={hoveredPlayer || selectedPlayer}
-                  stroke={getPlayerColor(hoveredPlayer || selectedPlayer)}
-                  fill={getPlayerColor(hoveredPlayer || selectedPlayer)}
+                  name={(hoveredPlayer || effectiveSelectedPlayer).charAt(0).toUpperCase() + (hoveredPlayer || effectiveSelectedPlayer).slice(1)}
+                  dataKey={hoveredPlayer || effectiveSelectedPlayer}
+                  stroke={getPlayerColor(hoveredPlayer || effectiveSelectedPlayer)}
+                  fill={getPlayerColor(hoveredPlayer || effectiveSelectedPlayer)}
                   fillOpacity={0.2}
                   strokeWidth={isMobile ? 2 : 3}
                   dot={{
-                    fill: getPlayerColor(hoveredPlayer || selectedPlayer),
+                    fill: getPlayerColor(hoveredPlayer || effectiveSelectedPlayer),
                     strokeWidth: 2,
                     r: isMobile ? 4 : 6,
                   }}
