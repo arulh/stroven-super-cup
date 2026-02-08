@@ -13,9 +13,15 @@ import { Whatshot, TrendingUp, TrendingDown } from '@mui/icons-material';
 import { StreakData } from '../types';
 import { fetchPlayers, fetchAllMatches } from '../services/api';
 import { getPlayerImage } from '../utils/playerImages';
+import { MIN_RANKED_MATCHES } from '../constants';
 
-const StreakChart: React.FC = () => {
+interface StreakChartProps {
+  showProvisional?: boolean;
+}
+
+const StreakChart: React.FC<StreakChartProps> = ({ showProvisional = false }) => {
   const [streakData, setStreakData] = useState<StreakData[]>([]);
+  const [playerPlayedCounts, setPlayerPlayedCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
 
@@ -23,6 +29,9 @@ const StreakChart: React.FC = () => {
     const loadStreakData = async () => {
       try {
         const players = await fetchPlayers();
+        setPlayerPlayedCounts(
+          Object.fromEntries(players.map((p) => [p.handle, p.played]))
+        );
         const allMatches = await fetchAllMatches();
 
         const streakDataResults = players.map((player) => {
@@ -131,8 +140,12 @@ const StreakChart: React.FC = () => {
     );
   }
 
+  const displayedStreakData = showProvisional
+    ? streakData
+    : streakData.filter((s) => (playerPlayedCounts[s.player] || 0) >= MIN_RANKED_MATCHES);
+
   // Don't show if no data
-  if (streakData.length === 0) {
+  if (displayedStreakData.length === 0) {
     return null;
   }
 
@@ -147,7 +160,7 @@ const StreakChart: React.FC = () => {
         </Box>
 
         {/* Streak Rankings */}
-        {streakData
+        {displayedStreakData
           .sort((a, b) => {
             // Sort by win streaks first, then by lowest loss streaks
             if (a.streakType === 'win' && b.streakType !== 'win') return -1;

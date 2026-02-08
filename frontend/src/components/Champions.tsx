@@ -19,9 +19,10 @@ const Champions: React.FC = () => {
   const theme = useTheme();
 
   const champions: Champion[] = [
-    { name: 'Niko', wins: 5, color: getPlayerColor('Niko') },
-    { name: 'Joel', wins: 1, color: getPlayerColor('Joel') },
+    { name: 'Niko', wins: 11, color: getPlayerColor('Niko') },
     { name: 'Arul', wins: 1, color: getPlayerColor('Arul') },
+    { name: 'Joel', wins: 1, color: getPlayerColor('Joel') },
+
   ];
 
   const sortedChampions = [...champions].sort((a, b) => b.wins - a.wins);

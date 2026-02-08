@@ -4,17 +4,17 @@
       "handle": "Niko",
       "imagePath": "/player-images/niko.jpeg",
       "description": "An undisputed giant of the Stroven Super Cup.",
-      "sscWins": 5,
+      "sscWins": 11,
       "height": "5'11\"",
       "nationality": "🇨🇦 Canada",
-      "playingStyle": "Aggressive Pressing"
+      "playingStyle": "Aggressive Dribbling"
     },
     {
       "handle": "Joel",
       "imagePath": "/player-images/joel.jpeg",
-      "description": "Rising competitor with a bright future.",
+      "description": "Championship winner trying to establish himself among the best.",
       "sscWins": 1,
-      "height": "6'0\"",
+      "height": "5'8 and 3/4\"",
       "nationality": "🇨🇦 Canada",
       "playingStyle": "Balanced"
     },
@@ -23,14 +23,14 @@
       "imagePath": "/player-images/arul.JPG",
       "description": "Championship winner who isn't afraid to go after the little guy.",
       "sscWins": 1,
-      "height": "5'10\"",
+      "height": "4'nothing\"",
       "nationality": "🇨🇦 Canada",
       "playingStyle": "Possesion"
     },
     {
       "handle": "Colin",
       "imagePath": "/player-images/colin.jpeg",
-      "description": "Skilled veteran with years of experience.",
+      "description": "Veteran with years of experience.",
       "sscWins": 0,
       "height": "6'1\"",
       "nationality": "🇨🇦 Canada",
@@ -39,16 +39,16 @@
     {
       "handle": "Daniel",
       "imagePath": "/player-images/daniel.JPG",
-      "description": "Loyal to only one club. #MiaSanMia",
+      "description": "Seasoned competitor beginning to show his true potential.",
       "sscWins": 0,
-      "height": "5'9\"",
+      "height": "9'3\"",
       "nationality": "🇨🇦 Canada",
       "playingStyle": "Balanced"
     },
     {
       "handle": "Dimitri",
       "imagePath": "/player-images/dimitri.jpg",
-      "description": "Incredible potential just waiting to be fulfilled.",
+      "description": "Incredible potential just waiting to claim first trophy.",
       "sscWins": 0,
       "height": "6'2\"",
       "nationality": "🇨🇦 Canada",
@@ -61,7 +61,25 @@
       "sscWins": 0,
       "height": "6'2\"",
       "nationality": "🇺🇸 USA",
-      "playingStyle": "Counter-Attack"
+      "playingStyle": "Democractic"
+    },
+    {
+      "handle": "Nate",
+      "imagePath": "/player-images/nate.png",
+      "description": "Upcoming rookie looking to prove himself in the big leagues.",
+      "sscWins": 0,
+      "height": "6'5\"",
+      "nationality": "🇨🇦 Canada",
+      "playingStyle": "Skilled Dribbling"
+    },
+    {
+      "handle": "Tony",
+      "imagePath": "/player-images/tony.png",
+      "description": "Team China.",
+      "sscWins": 0,
+      "height": "7'3\"",
+      "nationality": "🇨🇳 China",
+      "playingStyle": "Unpredictable"
     }
   ],
   "defaultImage": "/player-images/default-player.svg"
