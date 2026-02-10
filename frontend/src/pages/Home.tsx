@@ -10,6 +10,7 @@ import RecentEloTrendChart from "../components/RecentEloTrendChart";
 import RecentSessionGames from "../components/RecentSessionGames";
 import EloTrendChart from "../components/EloTrendChart";
 import PerformanceRadar from "../components/PerformanceRadar";
+import EloCalculator from "../components/EloCalculator";
 import introMessages from "../intro-messages.json";
 
 function Home() {
@@ -128,6 +129,9 @@ function Home() {
             <PerformanceRadar showProvisional={showProvisional} />
             <StreakChart showProvisional={showProvisional} />
           </Box>
+
+          {/* ELO Calculator */}
+          <EloCalculator />
         </Box>
       </Box>
     </Container>
