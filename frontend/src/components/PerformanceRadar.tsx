@@ -15,6 +15,7 @@ import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Responsi
 import { Psychology } from '@mui/icons-material';
 import { fetchPlayers, fetchAllMatches } from '../services/api';
 import { getPlayerColor } from '../utils/playerColors';
+import { MIN_RANKED_MATCHES } from '../constants';
 
 interface PerformanceMetric {
   metric: string;
@@ -22,10 +23,16 @@ interface PerformanceMetric {
   fullMark: number;
 }
 
-const PerformanceRadar: React.FC = () => {
+interface PerformanceRadarProps {
+  showProvisional?: boolean;
+}
+
+const PerformanceRadar: React.FC<PerformanceRadarProps> = ({ showProvisional = false }) => {
   const [selectedPlayer, setSelectedPlayer] = useState<string>('all');
+  const [hoveredPlayer, setHoveredPlayer] = useState<string | null>(null);
   const [performanceData, setPerformanceData] = useState<PerformanceMetric[]>([]);
   const [players, setPlayers] = useState<string[]>([]);
+  const [playerPlayedCounts, setPlayerPlayedCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -36,6 +43,9 @@ const PerformanceRadar: React.FC = () => {
         const playersData = await fetchPlayers();
         const playerNames = playersData.map(p => p.handle);
         setPlayers(playerNames);
+        setPlayerPlayedCounts(
+          Object.fromEntries(playersData.map((p) => [p.handle, p.played]))
+        );
 
         // Get all matches for detailed statistics
         const allMatches = await fetchAllMatches();
@@ -51,10 +61,8 @@ const PerformanceRadar: React.FC = () => {
           let goalsScored = 0;
           let goalsConceded = 0;
           let wins = 0;
-          let closeWins = 0; // Wins by 1-2 goals
-          let dominantWins = 0; // Wins by 3+ goals
-          let cleanSheets = 0; // Games where opponent scored 0 AND player won
-          let highScoringGames = 0; // Games where player scored 5+ goals
+          let clutchWins = 0; // Wins by exactly 1 goal
+          const goalDifferences: number[] = []; // Track GD for each match for volatility
 
           playerMatches.forEach(match => {
             const [p1Score, p2Score] = match.score.split('-').map(Number);
@@ -65,30 +73,37 @@ const PerformanceRadar: React.FC = () => {
             goalsScored += playerScore;
             goalsConceded += opponentScore;
 
+            const goalDiff = playerScore - opponentScore;
+            goalDifferences.push(goalDiff);
+
             if (playerScore > opponentScore) {
               wins++;
-              const diff = playerScore - opponentScore;
-              if (diff <= 2) closeWins++;
-              if (diff >= 3) dominantWins++;
-              if (opponentScore === 0) cleanSheets++;
-            }
-
-            if (playerScore >= 5) {
-              highScoringGames++;
+              if (goalDiff === 1) clutchWins++; // Exactly 1 goal difference
             }
           });
 
           const matchCount = playerMatches.length || 1;
+
+          // Calculate average goal difference
+          const avgGoalDiff = matchCount > 0
+            ? goalDifferences.reduce((sum, gd) => sum + gd, 0) / matchCount
+            : 0;
+
+          // Calculate volatility (standard deviation of goal differences)
+          const meanGD = avgGoalDiff;
+          const variance = matchCount > 0
+            ? goalDifferences.reduce((sum, gd) => sum + Math.pow(gd - meanGD, 2), 0) / matchCount
+            : 0;
+          const volatility = Math.sqrt(variance);
 
           // Calculate actual percentages and scores
           playerStats[player.handle] = {
             winRate: matchCount > 0 ? (wins / matchCount) * 100 : 0,
             avgGoalsScored: matchCount > 0 ? goalsScored / matchCount : 0,
             avgGoalsConceded: matchCount > 0 ? goalsConceded / matchCount : 0,
-            clutchFactor: wins > 0 ? (closeWins / wins) * 100 : 0,
-            domination: matchCount > 0 ? (dominantWins / matchCount) * 100 : 0,
-            cleanSheetRate: wins > 0 ? (cleanSheets / wins) * 100 : 0, // % of wins that were clean sheets
-            highScoringRate: matchCount > 0 ? (highScoringGames / matchCount) * 100 : 0,
+            avgGoalDiff: avgGoalDiff,
+            clutchFactor: wins > 0 ? (clutchWins / wins) * 100 : 0, // % of wins by exactly 1 goal
+            volatility: volatility,
           };
 
         }
@@ -105,24 +120,36 @@ const PerformanceRadar: React.FC = () => {
             fullMark: 100,
           },
           {
-            metric: 'Goal Scoring',
+            metric: 'Avg Goal Diff',
             ...Object.fromEntries(
               playerNames.map(name => {
-                // Convert average goals to percentage (0-8 goals mapped to 0-100%)
-                const avgGoals = playerStats[name]?.avgGoalsScored || 0;
-                const percentage = Math.min(100, (avgGoals / 5) * 100); // 5+ goals average = 100%
+                // Normalize: +3 GD = 100%, 0 = 50%, -3 = 0%
+                const avgGD = playerStats[name]?.avgGoalDiff || 0;
+                const percentage = Math.max(0, Math.min(100, 50 + (avgGD / 3) * 50));
                 return [name, Math.round(percentage)];
               })
             ),
             fullMark: 100,
           },
           {
-            metric: 'Defensive',
+            metric: 'Goals For',
             ...Object.fromEntries(
               playerNames.map(name => {
-                // Lower goals conceded is better (0-5 goals conceded mapped to 100-0%)
+                // 5+ goals average = 100%
+                const avgGoals = playerStats[name]?.avgGoalsScored || 0;
+                const percentage = Math.min(100, (avgGoals / 5) * 100);
+                return [name, Math.round(percentage)];
+              })
+            ),
+            fullMark: 100,
+          },
+          {
+            metric: 'Defense',
+            ...Object.fromEntries(
+              playerNames.map(name => {
+                // Inverted: 0 conceded = 100%, 5+ conceded = 0%
                 const avgConceded = playerStats[name]?.avgGoalsConceded || 0;
-                const percentage = Math.max(0, 100 - (avgConceded * 20)); // 0 conceded = 100%, 5+ conceded = 0%
+                const percentage = Math.max(0, 100 - (avgConceded / 5) * 100);
                 return [name, Math.round(percentage)];
               })
             ),
@@ -139,28 +166,31 @@ const PerformanceRadar: React.FC = () => {
             fullMark: 100,
           },
           {
-            metric: 'Domination',
+            metric: 'Consistency',
             ...Object.fromEntries(
-              playerNames.map(name => [
-                name,
-                Math.round(playerStats[name]?.domination || 0)
-              ])
-            ),
-            fullMark: 100,
-          },
-          {
-            metric: 'Clean Sheets',
-            ...Object.fromEntries(
-              playerNames.map(name => [
-                name,
-                Math.round(playerStats[name]?.cleanSheetRate || 0)
-              ])
+              playerNames.map(name => {
+                // Inverted volatility: lower stddev = higher score
+                // 0 stddev = 100%, 3+ stddev = 0%
+                const vol = playerStats[name]?.volatility || 0;
+                const percentage = Math.max(0, 100 - (vol / 3) * 100);
+                return [name, Math.round(percentage)];
+              })
             ),
             fullMark: 100,
           },
         ];
 
-        setPerformanceData(performanceMetrics);
+        // Calculate average stats across all players for each metric
+        const averageMetrics = performanceMetrics.map(metric => {
+          const playerValues = playerNames.map(name => metric[name] as number);
+          const average = playerValues.reduce((sum, val) => sum + val, 0) / playerValues.length;
+          return {
+            ...metric,
+            average: Math.round(average),
+          };
+        });
+
+        setPerformanceData(averageMetrics);
       } catch (error) {
         console.error('Error loading performance data:', error);
       } finally {
@@ -172,15 +202,23 @@ const PerformanceRadar: React.FC = () => {
   }, []);
 
 
+  const displayedPlayers = showProvisional
+    ? players
+    : players.filter((p) => (playerPlayedCounts[p] || 0) >= MIN_RANKED_MATCHES);
+
   const getDisplayData = () => {
-    if (selectedPlayer === 'all') {
+    // Use hoveredPlayer if hovering, otherwise use effectiveSelectedPlayer
+    const activePlayer = hoveredPlayer || effectiveSelectedPlayer;
+
+    if (activePlayer === 'all') {
       return performanceData;
     }
 
     return performanceData.map(item => ({
       metric: item.metric,
       fullMark: item.fullMark,
-      [selectedPlayer]: item[selectedPlayer] as number,
+      [activePlayer]: item[activePlayer] as number,
+      average: item.average, // Always include average for gray overlay
     }));
   };
 
@@ -194,8 +232,14 @@ const PerformanceRadar: React.FC = () => {
     );
   }
 
+  // Reset selection if current player is no longer in displayed list
+  const effectiveSelectedPlayer =
+    selectedPlayer !== 'all' && !displayedPlayers.includes(selectedPlayer)
+      ? 'all'
+      : selectedPlayer;
+
   // Don't show if insufficient data
-  if (players.length < 2) {
+  if (displayedPlayers.length < 2) {
     return null;
   }
 
@@ -221,16 +265,27 @@ const PerformanceRadar: React.FC = () => {
             <InputLabel id="player-select-label">Player</InputLabel>
             <Select
               labelId="player-select-label"
-              value={selectedPlayer}
+              value={effectiveSelectedPlayer}
               label="Player"
               onChange={(e) => setSelectedPlayer(e.target.value)}
               sx={{
                 fontSize: isMobile ? '0.75rem' : '0.875rem',
               }}
             >
-              <MenuItem value="all">All Players</MenuItem>
-              {players.map(player => (
-                <MenuItem key={player} value={player}>
+              <MenuItem
+                value="all"
+                onMouseEnter={() => setHoveredPlayer('all')}
+                onMouseLeave={() => setHoveredPlayer(null)}
+              >
+                All Players
+              </MenuItem>
+              {displayedPlayers.map(player => (
+                <MenuItem
+                  key={player}
+                  value={player}
+                  onMouseEnter={() => setHoveredPlayer(player)}
+                  onMouseLeave={() => setHoveredPlayer(null)}
+                >
                   {player.charAt(0).toUpperCase() + player.slice(1)}
                 </MenuItem>
               ))}
@@ -259,8 +314,20 @@ const PerformanceRadar: React.FC = () => {
                 }}
               />
 
-              {selectedPlayer === 'all' ? (
-                players.map((player) => (
+              {/* Always show average as gray overlay */}
+              <Radar
+                name="Average"
+                dataKey="average"
+                stroke="#9ca3af"
+                fill="#9ca3af"
+                fillOpacity={0.05}
+                strokeWidth={isMobile ? 1.5 : 2}
+                strokeDasharray="5 5"
+                dot={{ fill: "#9ca3af", strokeWidth: 1, r: isMobile ? 2 : 3 }}
+              />
+
+              {(hoveredPlayer || effectiveSelectedPlayer) === 'all' ? (
+                displayedPlayers.map((player) => (
                   <Radar
                     key={player}
                     name={player.charAt(0).toUpperCase() + player.slice(1)}
@@ -274,14 +341,14 @@ const PerformanceRadar: React.FC = () => {
                 ))
               ) : (
                 <Radar
-                  name={selectedPlayer.charAt(0).toUpperCase() + selectedPlayer.slice(1)}
-                  dataKey={selectedPlayer}
-                  stroke={getPlayerColor(selectedPlayer)}
-                  fill={getPlayerColor(selectedPlayer)}
+                  name={(hoveredPlayer || effectiveSelectedPlayer).charAt(0).toUpperCase() + (hoveredPlayer || effectiveSelectedPlayer).slice(1)}
+                  dataKey={hoveredPlayer || effectiveSelectedPlayer}
+                  stroke={getPlayerColor(hoveredPlayer || effectiveSelectedPlayer)}
+                  fill={getPlayerColor(hoveredPlayer || effectiveSelectedPlayer)}
                   fillOpacity={0.2}
                   strokeWidth={isMobile ? 2 : 3}
                   dot={{
-                    fill: getPlayerColor(selectedPlayer),
+                    fill: getPlayerColor(hoveredPlayer || effectiveSelectedPlayer),
                     strokeWidth: 2,
                     r: isMobile ? 4 : 6,
                   }}
@@ -316,18 +383,26 @@ const PerformanceRadar: React.FC = () => {
               </Box>
               <Box sx={{ p: 1.5, border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-                  Goal Scoring
+                  Avg Goal Diff
                 </Typography>
                 <Typography variant="caption" color="textSecondary">
-                  Avg goals/match (5+ = 100%)
+                  Mean GF - GA (+3 = 100%, 0 = 50%, -3 = 0%)
                 </Typography>
               </Box>
               <Box sx={{ p: 1.5, border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-                  Defensive
+                  Goals For
                 </Typography>
                 <Typography variant="caption" color="textSecondary">
-                  Fewer goals conceded (0 = 100%)
+                  Mean goals scored per match (5+ = 100%)
+                </Typography>
+              </Box>
+              <Box sx={{ p: 1.5, border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
+                  Defense
+                </Typography>
+                <Typography variant="caption" color="textSecondary">
+                  Mean goals against (0 = 100%, 5+ = 0%)
                 </Typography>
               </Box>
               <Box sx={{ p: 1.5, border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
@@ -335,23 +410,15 @@ const PerformanceRadar: React.FC = () => {
                   Clutch
                 </Typography>
                 <Typography variant="caption" color="textSecondary">
-                  % of wins by 1-2 goals
+                  % of wins by exactly 1 goal
                 </Typography>
               </Box>
               <Box sx={{ p: 1.5, border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-                  Domination
+                  Consistency
                 </Typography>
                 <Typography variant="caption" color="textSecondary">
-                  % of matches won by 3+ goals
-                </Typography>
-              </Box>
-              <Box sx={{ p: 1.5, border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-                  Clean Sheets
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  % of wins without conceding
+                  Inverse of volatility (lower σ(GD) = higher score)
                 </Typography>
               </Box>
             </Box>

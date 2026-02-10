@@ -159,19 +159,44 @@ def get_rating_history():
 
 @app.get("/api/matches")
 def get_all_matches():
-    """Get all matches with player names."""
+    """Get all matches with player names and ELO changes."""
     with SessionLocal() as db:
         matches = db.query(Match).order_by(Match.played_at.desc(), Match.id.desc()).all()
         result = []
         for m in matches:
             p1 = db.query(Player).get(m.p1_id)
             p2 = db.query(Player).get(m.p2_id)
-            result.append({
+
+            # Get rating history for this match
+            p1_rating = db.query(RatingHistory).filter(
+                RatingHistory.match_id == m.id,
+                RatingHistory.player_id == m.p1_id
+            ).first()
+            p2_rating = db.query(RatingHistory).filter(
+                RatingHistory.match_id == m.id,
+                RatingHistory.player_id == m.p2_id
+            ).first()
+
+            match_data = {
                 "played_at": m.played_at.isoformat(),
+                "created_at": m.created_at.isoformat(),
                 "p1": p1.handle,
                 "p2": p2.handle,
                 "score": f"{m.p1_score}-{m.p2_score}"
-            })
+            }
+
+            # Add ELO data if available
+            if p1_rating:
+                match_data["p1_pre_elo"] = round(p1_rating.pre_elo, 1)
+                match_data["p1_post_elo"] = round(p1_rating.post_elo, 1)
+                match_data["p1_elo_change"] = round(p1_rating.post_elo - p1_rating.pre_elo, 1)
+
+            if p2_rating:
+                match_data["p2_pre_elo"] = round(p2_rating.pre_elo, 1)
+                match_data["p2_post_elo"] = round(p2_rating.post_elo, 1)
+                match_data["p2_elo_change"] = round(p2_rating.post_elo - p2_rating.pre_elo, 1)
+
+            result.append(match_data)
         return {"matches": result}
 
 
@@ -239,8 +264,8 @@ async def create_match_insecure(request: Request):
                 db.flush()
             return p
 
-        p1 = get_or_create(data.p1_handle)
-        p2 = get_or_create(data.p2_handle)
+        p1 = get_or_create(data.p1_handle.lower())
+        p2 = get_or_create(data.p2_handle.lower())
 
         # Elo update
         new_p1, new_p2 = update_elo(p1.current_elo, p2.current_elo, data.p1_score, data.p2_score, k=float(os.getenv("ELO_K","32")))
@@ -321,13 +346,13 @@ async def create_match(request: Request):
         def get_or_create(handle: str):
             p = db.query(Player).filter(Player.handle == handle).first()
             if not p:
-                p = Player(handle=handle, name=handle)
+                p = Player(handle=handle.lower(), name=handle.lower())
                 db.add(p)
                 db.flush()
             return p
 
-        p1 = get_or_create(data.p1_handle)
-        p2 = get_or_create(data.p2_handle)
+        p1 = get_or_create(data.p1_handle.lower())
+        p2 = get_or_create(data.p2_handle.lower())
 
         # Elo update
         new_p1, new_p2 = update_elo(p1.current_elo, p2.current_elo, data.p1_score, data.p2_score, k=float(os.getenv("ELO_K","32")))

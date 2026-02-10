@@ -23,9 +23,15 @@ import { FormData } from "../types";
 import { fetchPlayers, fetchPlayerDetail } from "../services/api";
 import { getPlayerColor } from "../utils/playerColors";
 import { getPlayerImage } from "../utils/playerImages";
+import { MIN_RANKED_MATCHES } from "../constants";
 
-const FormChart: React.FC = () => {
+interface FormChartProps {
+  showProvisional?: boolean;
+}
+
+const FormChart: React.FC<FormChartProps> = ({ showProvisional = false }) => {
   const [formData, setFormData] = useState<FormData[]>([]);
+  const [playerPlayedCounts, setPlayerPlayedCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -34,6 +40,9 @@ const FormChart: React.FC = () => {
     const loadFormData = async () => {
       try {
         const players = await fetchPlayers();
+        setPlayerPlayedCounts(
+          Object.fromEntries(players.map((p) => [p.handle, p.played]))
+        );
         const formDataPromises = players
           .filter((p) => p.played >= 5) // Only show players with at least 5 matches
           .map(async (player) => {
@@ -70,10 +79,10 @@ const FormChart: React.FC = () => {
             };
           });
 
-        const results = (await Promise.all(formDataPromises)).filter(
+        const allResults = (await Promise.all(formDataPromises)).filter(
           Boolean
         ) as FormData[];
-        setFormData(results);
+        setFormData(allResults);
       } catch (error) {
         console.error("Error loading form data:", error);
       } finally {
@@ -100,7 +109,11 @@ const FormChart: React.FC = () => {
     return "STRUGGLING";
   };
 
-  const chartData = formData.map((player) => ({
+  const displayedFormData = showProvisional
+    ? formData
+    : formData.filter((p) => (playerPlayedCounts[p.player] || 0) >= MIN_RANKED_MATCHES);
+
+  const chartData = displayedFormData.map((player) => ({
     name: player.player,
     form: player.form,
     color: getPlayerColor(player.player),
@@ -117,7 +130,7 @@ const FormChart: React.FC = () => {
   }
 
   // Don't show the component if there's not enough data
-  if (formData.length === 0) {
+  if (displayedFormData.length === 0) {
     return null;
   }
 
@@ -195,7 +208,7 @@ const FormChart: React.FC = () => {
 
         {/* Detailed Form */}
         <Box>
-          {formData
+          {displayedFormData
             .sort((a, b) => b.form - a.form)
             .map((player) => {
               const wins = player.last5Matches.filter((r) => r === "W").length;

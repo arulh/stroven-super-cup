@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Container, Box, Typography } from "@mui/material";
+import { Container, Box, Typography, Switch, FormControlLabel } from "@mui/material";
 import Navigation from "../components/Navigation";
 import Leaderboard from "../components/Leaderboard";
 import Champions from "../components/Champions";
@@ -7,12 +7,15 @@ import RivalriesChart from "../components/RivalriesChart";
 import StreakChart from "../components/StreakChart";
 import FormChart from "../components/FormChart";
 import RecentEloTrendChart from "../components/RecentEloTrendChart";
+import RecentSessionGames from "../components/RecentSessionGames";
 import EloTrendChart from "../components/EloTrendChart";
 import PerformanceRadar from "../components/PerformanceRadar";
+import EloCalculator from "../components/EloCalculator";
 import introMessages from "../intro-messages.json";
 
 function Home() {
   const [randomMessage, setRandomMessage] = useState("");
+  const [showProvisional, setShowProvisional] = useState(false);
 
   useEffect(() => {
     const messages = introMessages.messages;
@@ -75,19 +78,45 @@ function Home() {
           <Leaderboard />
         </Box>
 
+        {/* Provisional Player Toggle */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showProvisional}
+                onChange={(e) => setShowProvisional(e.target.checked)}
+                color="primary"
+              />
+            }
+            label={
+              <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                Show provisional players (&lt;10 matches)
+              </Typography>
+            }
+          />
+        </Box>
+
         {/* Charts Grid - Full Width */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {/* Recent ELO Trend Chart - Full width */}
-          <RecentEloTrendChart />
-
           {/* All-Time ELO Trend Chart - Full width */}
-          <EloTrendChart />
+          <EloTrendChart showProvisional={showProvisional} />
+
+          {/* Recent ELO Trend Chart - Full width */}
+          {/* <RecentEloTrendChart /> */}
+
+          {/* Recent Session Games - Full width */}
+          <RecentSessionGames />
 
           {/* Form Chart - Full width */}
-          <FormChart />
+          <FormChart showProvisional={showProvisional} />
 
           {/* Rivalries Chart - Full width */}
-          <RivalriesChart />
+          <RivalriesChart showProvisional={showProvisional} />
 
           {/* Two column row */}
           <Box
@@ -97,10 +126,12 @@ function Home() {
               gap: 4,
             }}
           >
-            <PerformanceRadar />
-            <StreakChart />
+            <PerformanceRadar showProvisional={showProvisional} />
+            <StreakChart showProvisional={showProvisional} />
           </Box>
 
+          {/* ELO Calculator */}
+          <EloCalculator />
         </Box>
       </Box>
     </Container>
