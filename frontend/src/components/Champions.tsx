@@ -1,28 +1,20 @@
-import React from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  useTheme,
-} from '@mui/material';
-import { EmojiEvents } from '@mui/icons-material';
-import { getPlayerColor } from '../utils/playerColors';
-
+import React from "react";
+import { Card, CardContent, Typography, Box, useTheme } from "@mui/material";
+import { EmojiEvents } from "@mui/icons-material";
 interface Champion {
   name: string;
   wins: number;
-  color: string;
 }
+
+const podiumColors = ["#FFD700", "#C0C0C0", "#CD7F32"]; // gold, silver, bronze
 
 const Champions: React.FC = () => {
   const theme = useTheme();
 
   const champions: Champion[] = [
-    { name: 'Niko', wins: 11, color: getPlayerColor('Niko') },
-    { name: 'Arul', wins: 1, color: getPlayerColor('Arul') },
-    { name: 'Joel', wins: 1, color: getPlayerColor('Joel') },
-
+    { name: "Niko", wins: 11 },
+    { name: "Joel", wins: 1 },
+    { name: "Arul", wins: 1 },
   ];
 
   const sortedChampions = [...champions].sort((a, b) => b.wins - a.wins);
@@ -31,7 +23,7 @@ const Champions: React.FC = () => {
     <Card>
       <CardContent>
         <Box display="flex" alignItems="center" mb={2}>
-          <EmojiEvents sx={{ mr: 2, fontSize: '2rem', color: '#6594C0' }} />
+          <EmojiEvents sx={{ mr: 2, fontSize: "2rem", color: "#6594C0" }} />
           <Typography variant="h4" component="h3">
             Stroven Super Cup Champions
           </Typography>
@@ -39,35 +31,37 @@ const Champions: React.FC = () => {
 
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
             gap: 2,
           }}
         >
-          {sortedChampions.map((champion, index) => (
+          {sortedChampions.map((champion, index) => {
+            const color = podiumColors[index] ?? podiumColors[podiumColors.length - 1];
+            return (
             <Box
               key={champion.name}
               sx={{
-                textAlign: 'center',
+                textAlign: "center",
                 p: 2,
                 borderRadius: 2,
-                border: `1px solid ${champion.color}40`,
-                backgroundColor: `${champion.color}08`,
-                position: 'relative',
-                overflow: 'hidden',
+                border: `1px solid ${color}40`,
+                backgroundColor: `${color}08`,
+                position: "relative",
+                overflow: "hidden",
               }}
             >
               {/* Trophy Icon */}
               <Box
                 sx={{
-                  fontSize: index === 0 ? '2.5rem' : '1.75rem',
+                  fontSize: index === 0 ? "2.5rem" : "1.75rem",
                   mb: 0.5,
                 }}
               >
                 <EmojiEvents
                   sx={{
-                    color: champion.color,
-                    filter: `drop-shadow(0 2px 4px ${champion.color}40)`,
+                    color: color,
+                    filter: `drop-shadow(0 2px 4px ${color}40)`,
                   }}
                   fontSize="inherit"
                 />
@@ -77,15 +71,15 @@ const Champions: React.FC = () => {
               {index === 0 && (
                 <Box
                   sx={{
-                    position: 'absolute',
+                    position: "absolute",
                     top: 0,
                     right: 0,
-                    backgroundColor: champion.color,
-                    color: '#091442',
+                    backgroundColor: color,
+                    color: "#091442",
                     px: 1,
                     py: 0.5,
                     borderBottomLeftRadius: 8,
-                    fontSize: '0.75rem',
+                    fontSize: "0.75rem",
                     fontWeight: 600,
                   }}
                 >
@@ -110,7 +104,7 @@ const Champions: React.FC = () => {
                 variant="h4"
                 sx={{
                   fontWeight: 700,
-                  color: champion.color,
+                  color: color,
                   mb: 0.25,
                 }}
               >
@@ -121,15 +115,16 @@ const Champions: React.FC = () => {
                 variant="body2"
                 sx={{
                   color: theme.palette.text.secondary,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  fontSize: '0.75rem',
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  fontSize: "0.75rem",
                 }}
               >
-                {champion.wins === 1 ? 'Championship' : 'Championships'}
+                {champion.wins === 1 ? "Championship" : "Championships"}
               </Typography>
             </Box>
-          ))}
+            );
+          })}
         </Box>
 
         {/* Trophy Progress Bar */}
@@ -139,19 +134,19 @@ const Champions: React.FC = () => {
           </Typography>
           <Box
             sx={{
-              display: 'flex',
+              display: "flex",
               height: 8,
               borderRadius: 4,
-              overflow: 'hidden',
-              backgroundColor: 'rgba(148, 163, 184, 0.1)',
+              overflow: "hidden",
+              backgroundColor: "rgba(148, 163, 184, 0.1)",
             }}
           >
-            {sortedChampions.map((champion) => (
+            {sortedChampions.map((champion, index) => (
               <Box
                 key={champion.name}
                 sx={{
                   flex: champion.wins,
-                  backgroundColor: champion.color,
+                  backgroundColor: podiumColors[index] ?? podiumColors[podiumColors.length - 1],
                   opacity: 0.8,
                 }}
               />
@@ -159,23 +154,24 @@ const Champions: React.FC = () => {
           </Box>
           <Box
             sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
+              display: "flex",
+              justifyContent: "space-between",
               mt: 1,
             }}
           >
-            {sortedChampions.map((champion) => {
+            {sortedChampions.map((champion, index) => {
               const totalWins = champions.reduce((sum, c) => sum + c.wins, 0);
               return (
                 <Typography
                   key={champion.name}
                   variant="caption"
                   sx={{
-                    color: champion.color,
+                    color: podiumColors[index] ?? podiumColors[podiumColors.length - 1],
                     fontWeight: 500,
                   }}
                 >
-                  {champion.name}: {Math.round((champion.wins / totalWins) * 100)}%
+                  {champion.name}:{" "}
+                  {Math.round((champion.wins / totalWins) * 100)}%
                 </Typography>
               );
             })}

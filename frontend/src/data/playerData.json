@@ -80,6 +80,24 @@
       "height": "7'3\"",
       "nationality": "🇨🇳 China",
       "playingStyle": "Unpredictable"
+    },
+    {
+      "handle": "Rayyan Fozan Sheikh",
+      "imagePath": "/player-images/rayyan.PNG",
+      "description": "Dubai's finest",
+      "sscWins": 0,
+      "height": "5'8\"",
+      "nationality": "🇦🇪 UAE",
+      "playingStyle": "Balanced"
+    },
+    {
+      "handle": "Trevor Brown",
+      "imagePath": "/player-images/trevor.JPEG",
+      "description": "Seasoned Morgan Creek Open Champ",
+      "sscWins": 0,
+      "height": "6'3\"",
+      "nationality": "🇨🇳 Canada",
+      "playingStyle": "Balanced"
     }
   ],
   "defaultImage": "/player-images/default-player.svg"

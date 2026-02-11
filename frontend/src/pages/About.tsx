@@ -106,14 +106,14 @@ function About() {
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.8 }}>
                 Every single match is recorded for ELO calculations. The highest
-                elo ever has been recorded by Niko, during the biggest ever SSC
-                competition on October 3rd, 2025.
+                elo ever has been recorded by Vahlas during the February 5th,
+                2026 competition.
               </Typography>
             </CardContent>
           </Card>
         </Box>
 
-        <Card>
+        <Card sx={{ mb: 4 }}>
           <CardContent sx={{ p: 4 }}>
             <Typography
               variant="h5"
@@ -130,6 +130,33 @@ function About() {
               We are incredibly excited to see new records set and competitors
               being crowned as we move into the next SSC tournaments.
             </Typography>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent sx={{ p: 4 }}>
+            <Typography
+              variant="h5"
+              gutterBottom
+              sx={{ fontWeight: 600, color: "#6594C0" }}
+            >
+              The Rules
+            </Typography>
+            <Box
+              component="ol"
+              sx={{
+                pl: 3,
+                m: 0,
+                "& li": {
+                  mb: 1.5,
+                  opacity: 0.9,
+                  lineHeight: 1.8,
+                },
+              }}
+            >
+              <Typography component="li" variant="body1">
+                A Stroven Super Cup must at least be played with 4 competitors.
+              </Typography>
+            </Box>
           </CardContent>
         </Card>
       </Box>
