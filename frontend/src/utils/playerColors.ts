@@ -1,34 +1,47 @@
-// Consistent player colors across the entire app
-const PLAYER_COLORS = [
-  '#ef4444', // red
-  '#10b981', // green
-  '#3b82f6', // blue
-  '#f59e0b', // amber
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#14b8a6', // teal
-  '#f97316', // orange
-  '#06b6d4', // cyan
-  '#84cc16', // lime
-  '#a855f7', // purple
-  '#0ea5e9', // sky
+import playerData from "../data/playerData.json";
+
+// Fallback palette for players not in playerData.json
+const FALLBACK_COLORS = [
+  '#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6',
+  '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16',
+  '#a855f7', '#0ea5e9',
 ];
 
-// Cache for consistent color assignment
-const playerColorCache: { [key: string]: string } = {};
-let nextColorIndex = 0;
+// Build a case-insensitive lookup from playerData.json
+const playerColorMap: { [handle: string]: string } = {};
+for (const player of playerData.players) {
+  if (player.color) {
+    playerColorMap[player.handle.toLowerCase()] = player.color;
+  }
+}
+
+// Track colors already taken so fallback picks don't collide
+const usedColors = new Set(Object.values(playerColorMap));
+const fallbackCache: { [handle: string]: string } = {};
+let fallbackIndex = 0;
 
 export const getPlayerColor = (handle: string): string => {
-  // Return cached color if exists
-  if (playerColorCache[handle]) {
-    return playerColorCache[handle];
+  const key = handle.toLowerCase();
+
+  // Check playerData.json first
+  if (playerColorMap[key]) {
+    return playerColorMap[key];
   }
 
-  // Assign new color
-  const color = PLAYER_COLORS[nextColorIndex % PLAYER_COLORS.length];
-  playerColorCache[handle] = color;
-  nextColorIndex++;
+  // Return cached fallback if already assigned
+  if (fallbackCache[key]) {
+    return fallbackCache[key];
+  }
 
+  // Pick the next fallback color that isn't already used
+  let color: string;
+  do {
+    color = FALLBACK_COLORS[fallbackIndex % FALLBACK_COLORS.length];
+    fallbackIndex++;
+  } while (usedColors.has(color) && fallbackIndex <= FALLBACK_COLORS.length * 2);
+
+  usedColors.add(color);
+  fallbackCache[key] = color;
   return color;
 };
 
@@ -39,10 +52,4 @@ export const getPlayerColors = (handles: string[]): { [key: string]: string } =>
     colors[handle] = getPlayerColor(handle);
   });
   return colors;
-};
-
-// Reset color cache (useful for testing or reinitialization)
-export const resetPlayerColors = () => {
-  Object.keys(playerColorCache).forEach(key => delete playerColorCache[key]);
-  nextColorIndex = 0;
 };

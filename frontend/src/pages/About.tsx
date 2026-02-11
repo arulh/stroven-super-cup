@@ -156,6 +156,11 @@ function About() {
               <Typography component="li" variant="body1">
                 A Stroven Super Cup must at least be played with 4 competitors.
               </Typography>
+              <Typography component="li" variant="body1">
+                A Stroven Super Cup must be played with the reigning champion
+                participating in the cup in order to be deemed valid.
+              </Typography>
+              <Typography component="li" variant="body1"></Typography>
             </Box>
           </CardContent>
         </Card>
