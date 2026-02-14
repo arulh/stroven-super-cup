@@ -109,6 +109,16 @@
       "nationality": "🇨🇦 Canada",
       "playingStyle": "Balanced",
       "color": "#a855f7"
+    },
+    {
+      "handle": "Evan Vahlas",
+      "imagePath": "/player-images/evan.jpg",
+      "description": "Same bloodline, different beast.",
+      "sscWins": 0,
+      "height": "5'11\"",
+      "nationality": "🇬🇷 Greece",
+      "playingStyle": "Balanced",
+      "color": "#facdf6"
     }
   ],
   "defaultImage": "/player-images/default-player.svg"
