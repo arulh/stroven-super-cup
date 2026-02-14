@@ -12,7 +12,7 @@ const Champions: React.FC = () => {
   const theme = useTheme();
 
   const champions: Champion[] = [
-    { name: "Niko", wins: 11 },
+    { name: "Niko", wins: 12 },
     { name: "Joel", wins: 1 },
     { name: "Arul", wins: 1 },
   ];

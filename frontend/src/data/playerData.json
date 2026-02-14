@@ -4,7 +4,7 @@
       "handle": "Niko",
       "imagePath": "/player-images/niko.jpeg",
       "description": "An undisputed giant of the Stroven Super Cup.",
-      "sscWins": 11,
+      "sscWins": 12,
       "height": "5'11\"",
       "nationality": "🇬🇷 Greece",
       "playingStyle": "Aggressive Dribbling",
@@ -91,7 +91,7 @@
       "color": "#06b6d4"
     },
     {
-      "handle": "Rayyan Fozan Sheikh",
+      "handle": "Rayyan",
       "imagePath": "/player-images/rayyan.PNG",
       "description": "Dubai's finest",
       "sscWins": 0,
@@ -101,7 +101,7 @@
       "color": "#84cc16"
     },
     {
-      "handle": "Trevor Brown",
+      "handle": "Trevor",
       "imagePath": "/player-images/trevor.JPEG",
       "description": "Seasoned Morgan Creek Open Champ",
       "sscWins": 0,
@@ -111,7 +111,7 @@
       "color": "#a855f7"
     },
     {
-      "handle": "Evan Vahlas",
+      "handle": "Evan",
       "imagePath": "/player-images/evan.jpg",
       "description": "Same bloodline, different beast.",
       "sscWins": 0,
