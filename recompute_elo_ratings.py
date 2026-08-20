@@ -7,7 +7,7 @@ Run this after modifying matches or players in the database.
 import sqlite3
 from datetime import datetime
 
-DB_PATH = "./data/rpi_09182025.sqlite"
+DB_PATH = "./data/temp.sqlite"
 ELO_K = 32  # K-factor for ELO calculation
 INITIAL_ELO = 1000.0
 

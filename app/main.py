@@ -14,7 +14,7 @@ from logger_cfg import configure_logging
 
 HOST = os.getenv("APP_HOST", "0.0.0.0")
 PORT = int(os.getenv("APP_PORT", "8000"))
-DB_PATH = os.getenv("DB_PATH", "/data/temp.sqlite")
+DB_PATH = os.getenv("DB_PATH", "/data/data.sqlite")
 ELO_K = float(os.getenv("ELO_K", "32"))
 SIG_MAX_SKEW = int(os.getenv("SIG_MAX_SKEW_SECONDS", "300"))
 NONCE_TTL = int(os.getenv("NONCE_TTL_SECONDS", "900"))
