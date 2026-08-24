@@ -4,10 +4,11 @@
       "handle": "Niko",
       "imagePath": "/player-images/niko.jpeg",
       "description": "An undisputed giant of the Stroven Super Cup.",
-      "sscWins": 11,
+      "sscWins": 13,
       "height": "5'11\"",
-      "nationality": "🇨🇦 Canada",
-      "playingStyle": "Aggressive Dribbling"
+      "nationality": "🇬🇷 Greece",
+      "playingStyle": "Aggressive Dribbling",
+      "color": "#8602bf"
     },
     {
       "handle": "Joel",
@@ -15,8 +16,9 @@
       "description": "Championship winner trying to establish himself among the best.",
       "sscWins": 1,
       "height": "5'8 and 3/4\"",
-      "nationality": "🇨🇦 Canada",
-      "playingStyle": "Balanced"
+      "nationality": "🇩🇪 Germany",
+      "playingStyle": "Balanced",
+      "color": "#2a7dd1"
     },
     {
       "handle": "Arul",
@@ -24,8 +26,9 @@
       "description": "Championship winner who isn't afraid to go after the little guy.",
       "sscWins": 1,
       "height": "4'nothing\"",
-      "nationality": "🇨🇦 Canada",
-      "playingStyle": "Possesion"
+      "nationality": "🇮🇳 India",
+      "playingStyle": "Possesion",
+      "color": "#3b6e50"
     },
     {
       "handle": "Colin",
@@ -33,8 +36,9 @@
       "description": "Veteran with years of experience.",
       "sscWins": 0,
       "height": "6'1\"",
-      "nationality": "🇨🇦 Canada",
-      "playingStyle": "Balanced"
+      "nationality": "🇩🇪 Germany",
+      "playingStyle": "Balanced",
+      "color": "#f59e0b"
     },
     {
       "handle": "Daniel",
@@ -43,7 +47,8 @@
       "sscWins": 0,
       "height": "9'3\"",
       "nationality": "🇨🇦 Canada",
-      "playingStyle": "Balanced"
+      "playingStyle": "Balanced",
+      "color": "#23cc68"
     },
     {
       "handle": "Dimitri",
@@ -51,8 +56,9 @@
       "description": "Incredible potential just waiting to claim first trophy.",
       "sscWins": 0,
       "height": "6'2\"",
-      "nationality": "🇨🇦 Canada",
-      "playingStyle": "Balanced"
+      "nationality": "🇬🇷 Greece",
+      "playingStyle": "Balanced",
+      "color": "#e6a312"
     },
     {
       "handle": "Anthony",
@@ -61,7 +67,8 @@
       "sscWins": 0,
       "height": "6'2\"",
       "nationality": "🇺🇸 USA",
-      "playingStyle": "Democractic"
+      "playingStyle": "Democractic",
+      "color": "#14b8a6"
     },
     {
       "handle": "Nate",
@@ -70,7 +77,8 @@
       "sscWins": 0,
       "height": "6'5\"",
       "nationality": "🇨🇦 Canada",
-      "playingStyle": "Skilled Dribbling"
+      "playingStyle": "Skilled Dribbling",
+      "color": "#f97316"
     },
     {
       "handle": "Tony",
@@ -79,7 +87,38 @@
       "sscWins": 0,
       "height": "7'3\"",
       "nationality": "🇨🇳 China",
-      "playingStyle": "Unpredictable"
+      "playingStyle": "Unpredictable",
+      "color": "#06b6d4"
+    },
+    {
+      "handle": "Rayyan",
+      "imagePath": "/player-images/rayyan.PNG",
+      "description": "Dubai's finest",
+      "sscWins": 0,
+      "height": "5'8\"",
+      "nationality": "🇦🇪 UAE",
+      "playingStyle": "Balanced",
+      "color": "#84cc16"
+    },
+    {
+      "handle": "Trevor",
+      "imagePath": "/player-images/trevor.JPEG",
+      "description": "Seasoned Morgan Creek Open Champ",
+      "sscWins": 0,
+      "height": "6'3\"",
+      "nationality": "🇨🇦 Canada",
+      "playingStyle": "Balanced",
+      "color": "#a855f7"
+    },
+    {
+      "handle": "Evan",
+      "imagePath": "/player-images/evan.jpg",
+      "description": "Same bloodline, different beast.",
+      "sscWins": 0,
+      "height": "5'11\"",
+      "nationality": "🇬🇷 Greece",
+      "playingStyle": "Balanced",
+      "color": "#facdf6"
     }
   ],
   "defaultImage": "/player-images/default-player.svg"
