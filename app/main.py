@@ -4,12 +4,13 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 from sqlalchemy import create_engine, select, func
 from sqlalchemy.orm import sessionmaker
 from models import Base, Player, Match, RatingHistory, Audit
 from elo import update_elo
 from auth import verify_signed_request, AuthError
+from admin_auth import verify_admin_request, AdminAuthError
 from logger_cfg import configure_logging
 
 HOST = os.getenv("APP_HOST", "0.0.0.0")
@@ -21,7 +22,7 @@ NONCE_TTL = int(os.getenv("NONCE_TTL_SECONDS", "900"))
 LOG_FILE = os.getenv("LOG_FILE")
 
 log = configure_logging(LOG_FILE)
-app = FastAPI(title="FIFA Pi")
+app = FastAPI(title="SSC")
 
 # CORS middleware
 app.add_middleware(
@@ -44,7 +45,7 @@ class MatchIn(BaseModel):
     p2_handle: str
     p1_score: int
     p2_score: int
-    played_at: datetime = datetime.now()
+    played_at: datetime = Field(default_factory=datetime.now)
 
     @validator("p1_handle", "p2_handle")
     def clean_handle(cls, v):
@@ -237,24 +238,72 @@ def get_player_stats():
         return {"players": result}
 
 
-@app.get("/add-match", response_class=FileResponse)
-def get_add_match_form():
-    # Assumes your working dir has ./static/add_match.html
-    path = os.path.join(os.getcwd(), "static", "add_match.html")
+def _static_file(*parts: str) -> FileResponse:
+    path = os.path.join(os.getcwd(), "static", *parts)
     if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="Form not found")
+        raise HTTPException(status_code=404, detail="Page not found")
     return FileResponse(path)
 
 
+def _client_ip(request: Request):
+    return request.headers.get("cf-connecting-ip") or (request.client.host if request.client else None)
+
+
+def _audit_rejected_write(db, request: Request, reason: str) -> None:
+    """Discard whatever the failed request had pending, then record the attempt.
+
+    The rollback has to come first: sqlite allows a single writer, so auditing on
+    a second connection while this one still holds a write lock deadlocks.
+    """
+    db.rollback()
+    db.add(Audit(
+        key_id=request.headers.get("x-ssc-key-id"),
+        action="create_match",
+        resource_type="match",
+        ip=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        signature_valid=False,
+        note=reason,
+    ))
+    db.commit()
+
+
+@app.get("/add-match", response_class=FileResponse)
+def get_add_match_form():
+    return _static_file("add_match.html")
+
+
+@app.get("/admin/enroll", response_class=FileResponse)
+def get_enroll_page():
+    """One-time-per-device page where an admin generates their signing key."""
+    return _static_file("admin", "enroll.html")
+
+
 @app.post("/api/matches")
-async def create_match_insecure(request: Request):
+async def create_match_signed(request: Request):
+    """Record a match. Requires an Ed25519 signature from a registered admin key."""
     body = await request.body()
     with SessionLocal() as db:
-        # Auth
-        key = "d8e8f851fb8e4a02"
-        sig_valid = True
+        try:
+            api_key = verify_admin_request(
+                db=db,
+                headers=request.headers,
+                method=request.method,
+                path=str(request.url.path),
+                body_bytes=body,
+                max_skew=SIG_MAX_SKEW,
+                nonce_ttl=NONCE_TTL,
+            )
+        except AdminAuthError as e:
+            _audit_rejected_write(db, request, str(e))
+            raise HTTPException(status_code=401, detail=str(e))
 
         data = MatchIn.parse_raw(body)
+        p1_handle = data.p1_handle.lower()
+        p2_handle = data.p2_handle.lower()
+        if p1_handle == p2_handle:
+            raise HTTPException(status_code=400, detail="A player cannot play themselves")
+
         # Players ensure
         def get_or_create(handle: str):
             p = db.query(Player).filter(Player.handle == handle).first()
@@ -264,11 +313,11 @@ async def create_match_insecure(request: Request):
                 db.flush()
             return p
 
-        p1 = get_or_create(data.p1_handle.lower())
-        p2 = get_or_create(data.p2_handle.lower())
+        p1 = get_or_create(p1_handle)
+        p2 = get_or_create(p2_handle)
 
         # Elo update
-        new_p1, new_p2 = update_elo(p1.current_elo, p2.current_elo, data.p1_score, data.p2_score, k=float(os.getenv("ELO_K","32")))
+        new_p1, new_p2 = update_elo(p1.current_elo, p2.current_elo, data.p1_score, data.p2_score, k=ELO_K)
 
         # Persist match
         m = Match(
@@ -277,7 +326,7 @@ async def create_match_insecure(request: Request):
             p2_id=p2.id,
             p1_score=data.p1_score,
             p2_score=data.p2_score,
-            created_by_key_id=key,
+            created_by_key_id=api_key.key_id,
         )
         db.add(m)
         db.flush()
@@ -297,105 +346,19 @@ async def create_match_insecure(request: Request):
         p2.current_elo = new_p2
 
         db.add(Audit(
-            key_id=key,
+            key_id=api_key.key_id,
             action="create_match",
             resource_type="match",
             resource_id=str(m.id),
-            ip=request.headers.get("cf-connecting-ip") or (request.client.host if request.client else None),
+            ip=_client_ip(request),
             user_agent=request.headers.get("user-agent"),
-            signature_valid=sig_valid,
+            signature_valid=True,
         ))
 
         db.commit()
 
         return {"ok": True, "match_id": m.id}
 
-
-@app.post("/api/matches-secure")
-async def create_match(request: Request):
-    body = await request.body()
-    with SessionLocal() as db:
-        # Auth
-        try:
-            key = verify_signed_request(
-                db=db,
-                headers=request.headers,
-                method=request.method,
-                path=str(request.url.path),
-                body_bytes=body,
-                max_skew=SIG_MAX_SKEW,
-                nonce_ttl=NONCE_TTL,
-            )
-            sig_valid = True
-        except AuthError as e:
-            sig_valid = False
-            db.add(Audit(
-                key_id=request.headers.get("x-key-id"),
-                action="create_match",
-                resource_type="match",
-                ip=request.client.host if request.client else None,
-                user_agent=request.headers.get("user-agent"),
-                signature_valid=False,
-                note=str(e),
-            ))
-            db.commit()
-            raise HTTPException(status_code=401, detail=str(e))
-
-        data = MatchIn.parse_raw(body)
-        # Players ensure
-        def get_or_create(handle: str):
-            p = db.query(Player).filter(Player.handle == handle).first()
-            if not p:
-                p = Player(handle=handle.lower(), name=handle.lower())
-                db.add(p)
-                db.flush()
-            return p
-
-        p1 = get_or_create(data.p1_handle.lower())
-        p2 = get_or_create(data.p2_handle.lower())
-
-        # Elo update
-        new_p1, new_p2 = update_elo(p1.current_elo, p2.current_elo, data.p1_score, data.p2_score, k=float(os.getenv("ELO_K","32")))
-
-        # Persist match
-        m = Match(
-            played_at=data.played_at,
-            p1_id=p1.id,
-            p2_id=p2.id,
-            p1_score=data.p1_score,
-            p2_score=data.p2_score,
-            created_by_key_id=key.key_id,
-        )
-        db.add(m)
-        db.flush()
-
-        db.add(RatingHistory(player_id=p1.id, match_id=m.id, pre_elo=p1.current_elo, post_elo=new_p1))
-        db.add(RatingHistory(player_id=p2.id, match_id=m.id, pre_elo=p2.current_elo, post_elo=new_p2))
-
-        # Update player aggregates
-        p1.matches_played += 1
-        p2.matches_played += 1
-        if data.p1_score > data.p2_score:
-            p1.wins += 1; p2.losses += 1
-        elif data.p2_score > data.p1_score:
-            p2.wins += 1; p1.losses += 1
-        # draws don't change wins/losses
-        p1.current_elo = new_p1
-        p2.current_elo = new_p2
-
-        db.add(Audit(
-            key_id=key.key_id,
-            action="create_match",
-            resource_type="match",
-            resource_id=str(m.id),
-            ip=request.headers.get("cf-connecting-ip") or (request.client.host if request.client else None),
-            user_agent=request.headers.get("user-agent"),
-            signature_valid=sig_valid,
-        ))
-
-        db.commit()
-
-        return {"ok": True, "match_id": m.id}
 
 if __name__ == "__main__":
     import uvicorn

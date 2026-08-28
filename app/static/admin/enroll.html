@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Enroll Admin Key</title>
+  <style>
+    :root { --bg:#0b1220; --card:#121b2e; --muted:#93a3b8; --text:#e7eefb; --ok:#27ae60; --err:#e74c3c; --accent:#4c8bf5; }
+    html, body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:0; }
+    .wrap { max-width: 880px; margin: 32px auto; padding: 0 16px; }
+    .card { background: var(--card); border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,.35); padding: 24px; }
+    h1 { margin-top: 0; font-weight: 700; letter-spacing: .2px; }
+    h2 { font-size: 15px; color: var(--muted); font-weight: 600; margin: 24px 0 8px; text-transform: uppercase; letter-spacing: .5px; }
+    label { display:block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); background: #0e1627; color: var(--text); }
+    .actions { display:flex; gap: 12px; align-items:center; margin-top: 16px; flex-wrap: wrap; }
+    button { background: var(--accent); color: white; border: 0; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+    button.secondary { background: transparent; border: 1px solid rgba(255,255,255,.18); color: var(--text); }
+    button.danger { background: transparent; border: 1px solid rgba(231,76,60,.5); color: var(--err); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .msg { margin-top: 12px; font-size: 14px; }
+    .ok { color: var(--ok); } .err { color: var(--err); }
+    .hint { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .field { margin: 12px 0; }
+    .copyrow { display:flex; gap: 8px; align-items:center; }
+    .copyrow code { flex:1; background:#0e1627; border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:10px 12px; font-size:13px; overflow-wrap:anywhere; }
+    .hidden { display:none; }
+    ol { line-height: 1.8; padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Enroll this device</h1>
+
+      <div id="unsupported" class="msg err hidden"></div>
+
+      <div id="existing" class="hidden">
+        <h2>Key on this device</h2>
+        <div class="field">
+          <label>Key ID</label>
+          <div class="copyrow"><code id="cur-key-id"></code><button class="secondary" data-copy="cur-key-id">Copy</button></div>
+        </div>
+        <div class="field">
+          <label>Public key (base64)</label>
+          <div class="copyrow"><code id="cur-pubkey"></code><button class="secondary" data-copy="cur-pubkey">Copy</button></div>
+        </div>
+        <p class="hint" id="cur-meta"></p>
+        <div class="actions">
+          <a href="/add-match"><button type="button">Go to Add Match</button></a>
+          <button type="button" class="danger" id="delete-btn">Delete key from this device</button>
+        </div>
+      </div>
+
+      <div id="generate">
+        <h2>Generate a key</h2>
+        <div class="field">
+          <label for="label">Label (so you can tell devices apart, e.g. &ldquo;Nate laptop&rdquo;)</label>
+          <input id="label" placeholder="Nate laptop" />
+        </div>
+        <div class="actions">
+          <button type="button" id="generate-btn">Generate signing key</button>
+        </div>
+      </div>
+
+      <div id="msg" class="msg"></div>
+    </div>
+  </div>
+
+<script type="module">
+  import { supportsEd25519, loadSigningKey, createSigningKey, deleteSigningKey } from '/static/admin/ssc-key.js';
+
+  const $ = (id) => document.getElementById(id);
+  const msg = $('msg');
+
+  function setMsg(text, cls) {
+    msg.textContent = text;
+    msg.className = 'msg' + (cls ? ' ' + cls : '');
+  }
+
+  function shellQuote(value) {
+    return "'" + String(value).replace(/'/g, "'\\''") + "'";
+  }
+
+  function render(record) {
+    $('existing').classList.toggle('hidden', !record);
+    $('generate').classList.toggle('hidden', Boolean(record));
+    if (!record) return;
+    $('cur-key-id').textContent = record.keyId;
+    $('cur-pubkey').textContent = record.publicKeyB64;
+    $('cur-meta').textContent =
+      (record.label ? 'Label: ' + record.label + ' — ' : '') +
+      'created ' + new Date(record.createdAt).toLocaleString();
+    $('cmd').textContent =
+      'python scripts/register_key.py --key-id ' + record.keyId +
+      ' --pubkey ' + record.publicKeyB64 +
+      ' --label ' + shellQuote(record.label || record.keyId);
+    $('handoff').classList.remove('hidden');
+  }
+
+  if (!supportsEd25519()) {
+    const el = $('unsupported');
+    el.textContent = window.isSecureContext
+      ? 'This browser is missing the Web Crypto or IndexedDB APIs needed to hold a signing key.'
+      : 'Web Crypto needs a secure context. Open this page over HTTPS (or on localhost).';
+    el.classList.remove('hidden');
+    $('generate').classList.add('hidden');
+  } else {
+    render(await loadSigningKey());
+  }
+
+  $('generate-btn').addEventListener('click', async () => {
+    $('generate-btn').disabled = true;
+    setMsg('');
+    try {
+      const record = await createSigningKey($('label').value.trim());
+      render(record);
+      setMsg('✅ Key generated and stored on this device.', 'ok');
+    } catch (err) {
+      setMsg('❌ ' + (err?.message || String(err)), 'err');
+    } finally {
+      $('generate-btn').disabled = false;
+    }
+  });
+
+  $('delete-btn').addEventListener('click', async () => {
+    if (!confirm('Delete this device’s signing key? It cannot be recovered — you would generate a new one and have it re-registered.')) return;
+    await deleteSigningKey();
+    $('handoff').classList.add('hidden');
+    render(null);
+    setMsg('Key deleted. Ask the server admin to revoke the old key id.', 'ok');
+  });
+
+  document.querySelectorAll('[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText($(btn.dataset.copy).textContent);
+      const original = btn.textContent;
+      btn.textContent = 'Copied';
+      setTimeout(() => { btn.textContent = original; }, 1200);
+    });
+  });
+</script>
+</body>
+</html>

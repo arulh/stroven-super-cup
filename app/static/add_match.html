@@ -30,7 +30,8 @@
   <div class="wrap">
     <div class="card">
       <h1>Record a Match</h1>
-      <p class="hint">Submits to <code>/api/matches</code>. Works with JSON via <code>fetch()</code>.</p>
+      <p class="hint">Submits to <code>/api/matches</code>, signed with this device&rsquo;s admin key.</p>
+      <div id="key-status" class="hint"></div>
       <form id="match-form" autocomplete="off">
         <fieldset>
           <legend>Participants</legend>
@@ -41,7 +42,7 @@
             </div>
             <div class="col-6">
               <label for="away_handle">Away player handle</label>
-              <input id="away_handle" name="away_handle" placeholder="e.g., sam" required />
+              <input id="away_handle" name="away_handle" placeholder="e.g., niko" required />
             </div>
             <div class="col-3">
               <label for="home_score">Home score</label>
@@ -63,9 +64,19 @@
     </div>
   </div>
 
-<script>
+<script type="module">
+  import { loadSigningKey, signedPost } from '/static/admin/ssc-key.js';
+
   const form = document.getElementById('match-form');
   const msg  = document.getElementById('msg');
+  const keyStatus = document.getElementById('key-status');
+
+  const record = await loadSigningKey().catch(() => null);
+  if (record) {
+    keyStatus.textContent = 'Signing as key ' + record.keyId + (record.label ? ' (' + record.label + ')' : '') + '.';
+  } else {
+    keyStatus.innerHTML = 'No admin key on this device. <a href="/admin/enroll">Enroll one</a> before submitting.';
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -79,17 +90,11 @@
       p2_score: Number(form.away_score.value || 0)
     };
 
-    const headers = { 'Content-Type': 'application/json' };
-
     try {
-      const res = await fetch('/api/matches', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(data),
-      });
+      const res = await signedPost('/api/matches', data);
       const body = await res.json().catch(() => ({}));
       if (!res.ok || body.ok === false) {
-        throw new Error(body.error || res.statusText);
+        throw new Error(body.detail || body.error || res.statusText);
       }
       msg.textContent = '✅ Match created. ID: ' + (body.match_id ?? 'unknown');
       msg.classList.add('ok');

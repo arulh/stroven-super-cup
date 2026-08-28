@@ -70,3 +70,13 @@ class Audit(Base):
     __table_args__ = (
         UniqueConstraint('id', name='audit_id_unique'),
     )
+
+
+class AdminNonce(Base):
+    """One-shot nonces for signed admin writes, scoped per key so one admin
+    cannot burn another's nonces."""
+    __tablename__ = "admin_nonces"
+    key_id = Column(String(64), primary_key=True)
+    nonce = Column(String(64), primary_key=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)

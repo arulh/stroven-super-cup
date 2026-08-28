@@ -3,3 +3,5 @@ sign_submit.py
 *.b64
 .env
 __pycache__
+/scripts
+/data
